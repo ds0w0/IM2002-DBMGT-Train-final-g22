@@ -28,6 +28,25 @@
 --    docker-compose down -v && docker-compose up -d
 -- ============================================================
 
+-- 1. 使用者基本資料表 (不含密碼)
+CREATE TABLE IF NOT EXISTS users (
+    user_id         VARCHAR(10)  PRIMARY KEY,
+    full_name       VARCHAR(100) NOT NULL,
+    email           VARCHAR(150) UNIQUE NOT NULL,
+    phone           VARCHAR(20),
+    date_of_birth   DATE,
+    secret_question TEXT,
+    secret_answer   TEXT,
+    registered_at   TIMESTAMPTZ  NOT NULL,
+    is_active       BOOLEAN      DEFAULT TRUE
+);
+
+-- 2. 獨立的密碼與安全認證表 (分開儲存，使用 salt)
+CREATE TABLE IF NOT EXISTS user_credentials (
+    user_id       VARCHAR(10)  PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    password_hash VARCHAR(128) NOT NULL,
+    password_salt VARCHAR(64)  NOT NULL
+);
 
 
 
