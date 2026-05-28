@@ -1,5 +1,6 @@
 # TransitFlow — Intelligent Rail Assistant
 This is a cloned version of Group 22.
+Edit: 2026/5/28 20:23
 > **Course starter project** — your job is to build the databases that power this AI assistant.
 > The AI pipeline, web interface, and database connections are already wired up and working.
 
