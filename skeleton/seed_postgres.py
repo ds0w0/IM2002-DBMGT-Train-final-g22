@@ -16,6 +16,9 @@ import sys
 import psycopg2
 from psycopg2.extras import execute_values
 
+import hashlib
+import secrets
+
 # ── resolve paths ────────────────────────────────────────────────────────────
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
@@ -84,12 +87,48 @@ def seed_seat_layouts(cur):
     # TODO: Design your table schema, then implement the INSERT logic here.
     pass
 
-
 def seed_users(cur):
     data = load("registered_users.json")
-    # TODO: Design your table schema, then implement the INSERT logic here.
-    pass
-
+    
+    user_rows = []
+    credential_rows = []
+    
+    for u in data:
+        # ---- 1. 準備 users 基本資料 ----
+        user_rows.append((
+            u["user_id"], u["full_name"], u["email"], u["phone"],
+            u["date_of_birth"], u["secret_question"], u["secret_answer"],
+            u["registered_at"], u["is_active"]
+        ))
+        
+        # ---- 2. 資安強化：生成 Salt 並進行密碼 Hash ----
+        # 隨機生成 16 位元組的十六進位 Salt
+        salt = secrets.token_hex(16) 
+        plaintext_password = u["password"]
+        
+        # 將 明碼密碼 + Salt 進行 SHA-256 雜湊
+        hash_input = plaintext_password + salt
+        password_hash = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+        
+        credential_rows.append((
+            u["user_id"],
+            password_hash,
+            salt
+        ))
+        
+    # ---- 3. 寫入第一張表：users ----
+    user_columns = [
+        "user_id", "full_name", "email", "phone", 
+        "date_of_birth", "secret_question", "secret_answer", 
+        "registered_at", "is_active"
+    ]
+    n_users = insert_many(cur, "users", user_columns, user_rows)
+    print(f"  users: {n_users} rows inserted")
+    
+    # ---- 4. 寫入第二張表：user_credentials ----
+    cred_columns = ["user_id", "password_hash", "password_salt"]
+    n_creds = insert_many(cur, "user_credentials", cred_columns, credential_rows)
+    print(f"  user_credentials: {n_creds} rows inserted")
 
 def seed_national_rail_bookings(cur):
     data = load("bookings.json")
