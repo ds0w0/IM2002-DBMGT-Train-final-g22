@@ -48,7 +48,25 @@ CREATE TABLE IF NOT EXISTS user_credentials (
     password_salt VARCHAR(64)  NOT NULL
 );
 
-
+-- 3. 國家鐵路訂票紀錄表
+CREATE TABLE IF NOT EXISTS national_rail_bookings (
+    booking_id             VARCHAR(20)   PRIMARY KEY,
+    user_id                VARCHAR(10)   NOT NULL REFERENCES users(user_id),
+    schedule_id            VARCHAR(20)   NOT NULL, -- 晚點會對齊班表表
+    origin_station_id      VARCHAR(10)   NOT NULL, -- 晚點會對齊車站表
+    destination_station_id VARCHAR(10)   NOT NULL, -- 晚點會對齊車站表
+    travel_date            DATE          NOT NULL,
+    departure_time         VARCHAR(10)   NOT NULL,
+    ticket_type            VARCHAR(20)   NOT NULL, -- 'single', 'return'
+    fare_class             VARCHAR(20)   NOT NULL, -- 'standard', 'first'
+    coach                  CHAR(2)       NOT NULL,
+    seat_id                VARCHAR(10)   NOT NULL,
+    stops_travelled        INT           NOT NULL,
+    amount_usd             NUMERIC(10,2) NOT NULL,
+    status                 VARCHAR(20)   NOT NULL, -- 'completed', 'cancelled', 'confirmed'
+    booked_at              TIMESTAMPTZ   NOT NULL,
+    travelled_at           TIMESTAMPTZ   -- 允許為空值 (null)
+);
 
 -- ============================================================
 --  VECTOR SCHEMA  (RAG / Help Desk) — do not modify

@@ -132,9 +132,37 @@ def seed_users(cur):
 
 def seed_national_rail_bookings(cur):
     data = load("bookings.json")
-    # TODO: Design your table schema, then implement the INSERT logic here.
-    pass
-
+    rows = [
+        (
+            b["booking_id"],
+            b["user_id"],
+            b["schedule_id"],
+            b["origin_station_id"],
+            b["destination_station_id"],
+            b["travel_date"],
+            b["departure_time"],
+            b["ticket_type"],
+            b["fare_class"],
+            b["coach"],
+            b["seat_id"],
+            b["stops_travelled"],
+            b["amount_usd"],
+            b["status"],
+            b["booked_at"],
+            b["travelled_at"] # Python JSON 解析器會自動把 null 轉成 None，psycopg2 會解成 SQL 的 NULL
+        )
+        for b in data
+    ]
+    
+    columns = [
+        "booking_id", "user_id", "schedule_id", "origin_station_id",
+        "destination_station_id", "travel_date", "departure_time",
+        "ticket_type", "fare_class", "coach", "seat_id",
+        "stops_travelled", "amount_usd", "status", "booked_at", "travelled_at"
+    ]
+    
+    n = insert_many(cur, "national_rail_bookings", columns, rows)
+    print(f"  national_rail_bookings: {n} rows inserted")
 
 def seed_metro_travels(cur):
     data = load("metro_travel_history.json")
