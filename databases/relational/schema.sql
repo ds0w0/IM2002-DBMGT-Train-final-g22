@@ -68,6 +68,16 @@ CREATE TABLE IF NOT EXISTS national_rail_bookings (
     travelled_at           TIMESTAMPTZ   -- 允許為空值 (null)
 );
 
+-- 4. 付款紀錄表 (處理鐵路與捷運的多型交易紀錄)
+CREATE TABLE IF NOT EXISTS payments (
+    payment_id VARCHAR(20)   PRIMARY KEY,
+    booking_id VARCHAR(20)   NOT NULL, -- 包含 BK(鐵路) 與 MT(捷運) 兩種前綴
+    amount_usd NUMERIC(10,2) NOT NULL, -- 精準美金交易金額
+    method     VARCHAR(50)   NOT NULL, -- 'credit_card', 'ewallet', 'debit_card'
+    status     VARCHAR(20)   NOT NULL, -- 'paid', 'refunded'
+    paid_at    TIMESTAMPTZ   NOT NULL  -- 帶時區的付款時間
+);
+
 -- ============================================================
 --  VECTOR SCHEMA  (RAG / Help Desk) — do not modify
 -- ============================================================

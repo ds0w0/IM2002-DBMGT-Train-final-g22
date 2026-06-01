@@ -171,9 +171,28 @@ def seed_metro_travels(cur):
 
 
 def seed_payments(cur):
+    # 讀取 payments.json 資料
     data = load("payments.json")
-    # TODO: Design your table schema, then implement the INSERT logic here.
-    pass
+    
+    # 解析整理每一筆付款物件
+    rows = [
+        (
+            p["payment_id"],
+            p["booking_id"],
+            p["amount_usd"],
+            p["method"],
+            p["status"],
+            p["paid_at"]
+        )
+        for p in data
+    ]
+    
+    # 欄位順序對齊 schema.sql
+    columns = ["payment_id", "booking_id", "amount_usd", "method", "status", "paid_at"]
+    
+    # 大量匯入資料，並自動處理 ON CONFLICT DO NOTHING (避免重複執行腳本時報錯)
+    n = insert_many(cur, "payments", columns, rows)
+    print(f"  payments: {n} rows inserted")
 
 
 def seed_feedback(cur):
