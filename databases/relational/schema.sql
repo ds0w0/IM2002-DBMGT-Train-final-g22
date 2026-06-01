@@ -52,30 +52,40 @@ CREATE TABLE IF NOT EXISTS user_credentials (
 CREATE TABLE IF NOT EXISTS national_rail_bookings (
     booking_id             VARCHAR(20)   PRIMARY KEY,
     user_id                VARCHAR(10)   NOT NULL REFERENCES users(user_id),
-    schedule_id            VARCHAR(20)   NOT NULL, -- 晚點會對齊班表表
-    origin_station_id      VARCHAR(10)   NOT NULL, -- 晚點會對齊車站表
-    destination_station_id VARCHAR(10)   NOT NULL, -- 晚點會對齊車站表
+    schedule_id            VARCHAR(20)   NOT NULL, 
+    origin_station_id      VARCHAR(10)   NOT NULL, 
+    destination_station_id VARCHAR(10)   NOT NULL, 
     travel_date            DATE          NOT NULL,
     departure_time         VARCHAR(10)   NOT NULL,
-    ticket_type            VARCHAR(20)   NOT NULL, -- 'single', 'return'
-    fare_class             VARCHAR(20)   NOT NULL, -- 'standard', 'first'
+    ticket_type            VARCHAR(20)   NOT NULL, 
+    fare_class             VARCHAR(20)   NOT NULL, 
     coach                  CHAR(2)       NOT NULL,
     seat_id                VARCHAR(10)   NOT NULL,
     stops_travelled        INT           NOT NULL,
     amount_usd             NUMERIC(10,2) NOT NULL,
-    status                 VARCHAR(20)   NOT NULL, -- 'completed', 'cancelled', 'confirmed'
+    status                 VARCHAR(20)   NOT NULL, 
     booked_at              TIMESTAMPTZ   NOT NULL,
-    travelled_at           TIMESTAMPTZ   -- 允許為空值 (null)
+    travelled_at           TIMESTAMPTZ   
 );
 
--- 4. 付款紀錄表 (處理鐵路與捷運的多型交易紀錄)
+-- 4. 付款紀錄表
 CREATE TABLE IF NOT EXISTS payments (
     payment_id VARCHAR(20)   PRIMARY KEY,
-    booking_id VARCHAR(20)   NOT NULL, -- 包含 BK(鐵路) 與 MT(捷運) 兩種前綴
-    amount_usd NUMERIC(10,2) NOT NULL, -- 精準美金交易金額
-    method     VARCHAR(50)   NOT NULL, -- 'credit_card', 'ewallet', 'debit_card'
-    status     VARCHAR(20)   NOT NULL, -- 'paid', 'refunded'
-    paid_at    TIMESTAMPTZ   NOT NULL  -- 帶時區的付款時間
+    booking_id VARCHAR(20)   NOT NULL, 
+    amount_usd NUMERIC(10,2) NOT NULL, 
+    method     VARCHAR(50)   NOT NULL, 
+    status     VARCHAR(20)   NOT NULL, 
+    paid_at    TIMESTAMPTZ   NOT NULL  
+);
+
+-- 5. 乘客滿度回饋與評論表
+CREATE TABLE IF NOT EXISTS feedback (
+    feedback_id  VARCHAR(20) PRIMARY KEY,
+    booking_id   VARCHAR(20) NOT NULL, 
+    user_id      VARCHAR(10) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    rating       INT         NOT NULL CHECK (rating >= 1 AND rating <= 5), 
+    comment      TEXT,                 
+    submitted_at TIMESTAMPTZ NOT NULL
 );
 
 -- ============================================================

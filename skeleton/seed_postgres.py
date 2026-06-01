@@ -196,9 +196,28 @@ def seed_payments(cur):
 
 
 def seed_feedback(cur):
+    # 讀取 feedback.json 原始檔案
     data = load("feedback.json")
-    # TODO: Design your table schema, then implement the INSERT logic here.
-    pass
+    
+    # 整理轉換為 tuple 列表，Python 的 json 解析器會自動將 JSON 的 null 轉為 Python 的 None
+    rows = [
+        (
+            f["feedback_id"],
+            f["booking_id"],
+            f["user_id"],
+            f["rating"],
+            f["comment"],
+            f["submitted_at"]
+        )
+        for f in data
+    ]
+    
+    # 欄位順序必須與上面 rows 結構完全一致
+    columns = ["feedback_id", "booking_id", "user_id", "rating", "comment", "submitted_at"]
+    
+    # 執行批次匯入並打印結果
+    n = insert_many(cur, "feedback", columns, rows)
+    print(f"  feedback: {n} rows inserted")
 
 
 # ── main ─────────────────────────────────────────────────────────────────────
