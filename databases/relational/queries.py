@@ -33,6 +33,8 @@ import psycopg2.extras
 
 from skeleton.config import PG_DSN, VECTOR_TOP_K, VECTOR_SIMILARITY_THRESHOLD
 
+import hashlib
+import secrets
 
 def _connect():
     """Return a new psycopg2 connection with autocommit enabled."""
@@ -255,6 +257,8 @@ def execute_cancellation(booking_id: str, user_id: str) -> tuple[bool, dict | st
 
 # ── AUTHENTICATION QUERIES ────────────────────────────────────────────────────
 
+# ── AUTHENTICATION QUERIES ────────────────────────────────────────────────────
+
 def register_user(
     email: str,
     first_name: str,
@@ -263,38 +267,162 @@ def register_user(
     password: str,
     secret_question: str,
     secret_answer: str,
-) -> tuple[bool, str]:
+    ) -> tuple[bool, str]:
     """
-    Register a new user.
+    Register a new user with advanced SHA-256 salted password hashing.
     Returns (True, user_id) on success or (False, error_message) on failure.
-
-    NOTE: passwords are stored as plain text here intentionally for teaching
-    purposes. In production, replace with a salted hash (e.g. bcrypt).
     """
-    raise NotImplementedError("TODO: implement after designing your schema")
+    # 根據 full_name 的評分規則，組合姓名
+    full_name = f"{first_name} {surname}"
+    # 生成全新的 user_id (例如利用隨機生成或查表，這裡依據資料庫規範生成)
+    # 為了對齊種子格式 (RUxx)，我們現場生成一個隨機或基於序列的ID，最穩妥是使用大寫英數組合
+    suffix = "".join(secrets.choices(string.ascii_uppercase + string.digits, k=4))
+    user_id = f"U-{suffix}"
+    
+    # 處理出生日期 DATE (格式要求為 YYYY-MM-DD，預設取該年1月1日)
+    date_of_birth = f"{year_of_birth}-01-01"
+    registered_at = datetime.now(timezone.utc)
+
+    # 由於需要跨兩張表，使用手動控制的事務處理 (Transaction)
+    sql_user = """
+        INSERT INTO users (user_id, full_name, email, date_of_birth, secret_question, secret_answer, registered_at, is_active)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE);
+    """
+    
+    # 資安強化：生成 Salt 並進行密碼 Hash
+    salt = secrets.token_hex(16)
+    hash_input = password + salt
+    password_hash = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+
+    sql_cred = """
+        INSERT INTO user_credentials (user_id, password_hash, password_salt)
+        VALUES (%s, %s, %s);
+    """
+    
+    # 建立手動 Commit 的連線處理
+    conn = psycopg2.connect(PG_DSN)
+    conn.autocommit = False # 開啟嚴格事務機制
+    try:
+        with conn.cursor() as cur:
+            # 1. 寫入 users 基本表
+            cur.execute(sql_user, (user_id, full_name, email, date_of_birth, secret_question, secret_answer, registered_at))
+            # 2. 寫入 user_credentials 認證表
+            cur.execute(sql_cred, (user_id, password_hash, salt))
+            
+        conn.commit() # 兩張表都成功，才進磁碟
+        return True, user_id
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
+        return False, "Email already registered"
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
+    finally:
+        conn.close()
 
 
 def login_user(email: str, password: str) -> Optional[dict]:
     """
-    Verify credentials. Returns a user dict on success or None on failure.
-    Dict keys: user_id, email, full_name, first_name, surname, phone, date_of_birth, is_active.
+    Verify credentials using the salted password hashing flow. 
+    Returns a user dict on success or None on failure.
     """
-    raise NotImplementedError("TODO: implement after designing your schema")
+    # 1. 先用 email 找出使用者的基本資料與資安金鑰
+    sql = """
+        SELECT u.user_id, u.email, u.full_name, u.phone, u.date_of_birth, u.is_active,
+               c.password_hash, c.password_salt
+        FROM users u
+        JOIN user_credentials c ON u.user_id = c.user_id
+        WHERE u.email = %s AND u.is_active = TRUE;
+    """
+    
+    with _connect() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(sql, (email,))
+            user_record = cur.fetchone()
+            
+            if not user_record:
+                return None
+            
+            # 2. 現場將輸入的明文密碼加上該使用者的專屬 salt 進行 SHA-256 雜湊
+            stored_hash = user_record["password_hash"]
+            salt = user_record["password_salt"]
+            
+            hash_input = password + salt
+            computed_hash = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+            
+            # 3. 比對密碼雜湊值
+            if computed_hash == stored_hash:
+                # 依據簽名規範補齊 first_name 與 surname 返回給 Agent 讀取
+                name_parts = user_record["full_name"].split(" ", 1)
+                first_name = name_parts[0] if len(name_parts) > 0 else ""
+                surname = name_parts[1] if len(name_parts) > 1 else ""
+                
+                return {
+                    "user_id": user_record["user_id"],
+                    "email": user_record["email"],
+                    "full_name": user_record["full_name"],
+                    "first_name": first_name,
+                    "surname": surname,
+                    "phone": user_record["phone"],
+                    "date_of_birth": str(user_record["date_of_birth"]),
+                    "is_active": user_record["is_active"]
+                }
+            
+            return None
 
 
 def get_user_secret_question(email: str) -> Optional[str]:
     """Return the secret question for a registered email, or None if not found."""
-    raise NotImplementedError("TODO: implement after designing your schema")
-
+    sql = "SELECT secret_question FROM users WHERE email = %s;"
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, (email,))
+            row = cur.fetchone()
+            return row[0] if row else None
 
 def verify_secret_answer(email: str, answer: str) -> bool:
     """Return True if the provided answer matches the stored secret answer (case-insensitive)."""
-    raise NotImplementedError("TODO: implement after designing your schema")
-
+    sql = "SELECT secret_answer FROM users WHERE email = %s;"
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, (email,))
+            row = cur.fetchone()
+            if row and row[0]:
+                # 實作題目要求的 case-insensitive (大小寫無關比對)
+                return row[0].strip().lower() == answer.strip().lower()
+            return False
 
 def update_password(email: str, new_password: str) -> bool:
-    """Update the password for a user. Returns True if the row was updated."""
-    raise NotImplementedError("TODO: implement after designing your schema")
+    """Update the password for a user using a new randomized salt. Returns True if updated."""
+    # 1. 找出該 email 對應的 user_id
+    sql_find = "SELECT user_id FROM users WHERE email = %s;"
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql_find, (email,))
+            row = cur.fetchone()
+            if not row:
+                return False
+            user_id = row[0]
+
+    # 2. 生成全新隨機鹽巴並雜湊新密碼
+    new_salt = secrets.token_hex(16)
+    hash_input = new_password + new_salt
+    new_password_hash = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+
+    sql_update = """
+        UPDATE user_credentials 
+        SET password_hash = %s, password_salt = %s 
+        WHERE user_id = %s;
+    """
+    
+    # 執行寫入
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql_update, (new_password_hash, new_salt, user_id))
+            return cur.rowcount > 0
+    finally:
+        conn.close()
 
 
 # ── VECTOR / RAG QUERIES — do not modify ─────────────────────────────────────
