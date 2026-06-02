@@ -165,33 +165,35 @@ def seed_national_rail_bookings(cur):
     print(f"  national_rail_bookings: {n} rows inserted")
 
 def seed_metro_travels(cur):
-    # 讀取捷運搭乘歷史紀錄 JSON 檔案
     data = load("metro_travel_history.json")
     
-    # 整理轉換為 tuple 列表，使用 .get() 安全讀取可能為 null 的欄位（如尚未出站的紀錄）
-    rows = [
-        (
+    rows = []
+    for m in data:
+        # 💡 防禦性處理：如果是日票 (day_pass)，purchased_at 會是 null
+        # 這時我們借用 travelled_at 當作進站時間，確保不會違反資料庫的 NOT NULL 規定
+        tap_in = m.get("purchased_at")
+        if not tap_in:
+            tap_in = m.get("travelled_at")
+            
+        rows.append((
             m["trip_id"],
             m["user_id"],
             m["schedule_id"],
             m["origin_station_id"],
-            m.get("destination_station_id"), # 可能為 None
-            m["tap_in_at"],
-            m.get("tap_out_at"),             # 可能為 None
-            m["fare_usd"],
+            m.get("destination_station_id"),
+            tap_in,                    # 對應到資料庫的 tap_in_at
+            m.get("travelled_at"),     # 對應到資料庫的 tap_out_at
+            m.get("amount_usd", 0.0),  # JSON 裡叫 amount_usd，對應到資料庫的 fare_usd
             m["status"]
-        )
-        for m in data
-    ]
-    
-    # 欄位順序必須與 schema.sql 中的 metro_travel_history 定義完全一致
+        ))
+        
+    # 欄位順序對齊 schema.sql
     columns = [
         "trip_id", "user_id", "schedule_id", "origin_station_id",
         "destination_station_id", "tap_in_at", "tap_out_at", 
         "fare_usd", "status"
     ]
     
-    # 執行批次匯入並印出結果
     n = insert_many(cur, "metro_travel_history", columns, rows)
     print(f"  metro_travel_history: {n} rows inserted")
 
