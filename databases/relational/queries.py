@@ -926,3 +926,33 @@ def store_policy_document(
             if row is None:
                 raise RuntimeError("Failed to insert policy document")
             return row[0]
+# 新加的(wei)
+
+def query_travel_policies(query: str) -> list[dict]:
+    """
+    Search travel policies (bicycles, pets, lost property, luggage) by meaning.
+    """
+    from skeleton.llm_provider import get_embedding
+    
+    # 將使用者的問題轉成向量
+    query_vector = get_embedding(query)
+    
+    conn = get_db_connection() # 呼叫你們現有的連線函式
+    try:
+        with conn.cursor() as cur:
+            # 透過 pgvector 進行餘弦相似度比對
+            cur.execute("""
+                SELECT title, content, 
+                       1 - (embedding <=> %s::vector) AS similarity
+                FROM policy_documents
+                ORDER BY similarity DESC
+                LIMIT 3
+            """, (query_vector,))
+            
+            results = cur.fetchall()
+            return [
+                {"title": row["title"], "content": row["content"], "similarity": round(row["similarity"], 3)}
+                for row in results
+            ]
+    finally:
+        conn.close()        

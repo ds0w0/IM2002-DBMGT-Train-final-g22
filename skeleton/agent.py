@@ -42,6 +42,7 @@ from databases.relational.queries import (
     query_metro_fare,
     query_available_seats,
     auto_select_adjacent_seats,
+    query_travel_policies,
     query_user_profile,
     query_user_bookings,
     execute_booking,
@@ -237,6 +238,18 @@ TOOLS = [
         "required": ["query"],
     },
     {
+        "name": "search_travel_policies",
+        "description": (
+            "Search company policy documents regarding lost property, bicycles, pets, luggage, "
+            "food and drink, and planned disruptions. Use when the user asks about rules, "
+            "what is permitted on trains/metros, or how to handle lost items."
+        ),
+        "parameters": {
+            "query": {"type": "string", "description": "Natural language question about the specific travel policy"},
+        },
+        "required": ["query"],
+    },
+    {
         "name": "find_route",
         "description": (
             "Find the best route or path between two stations. Use for ANY question about "
@@ -285,6 +298,7 @@ make_booking(schedule_id, origin_station_id, destination_station_id, travel_date
 cancel_booking(booking_id)
 get_user_bookings()
 search_policy(query)
+search_travel_policies(query)
 find_alternative_routes(origin_id, destination_id, avoid_station_id, network?)
 get_delay_ripple(station_id, hops?)"""
 
@@ -393,6 +407,8 @@ def _execute_tool(
                 }
                 for d in docs
             ]
+        elif tool_name == "search_travel_policies":
+            result = query_travel_policies(params["query"])    
 
         elif tool_name == "find_route":
             origin_id      = params["origin_id"]
@@ -620,6 +636,7 @@ JSON:"""
                 "Rail fare/cost/price questions → check_national_rail_availability then get_national_rail_fare. "
                 "Schedule/timetable/trains/services questions → check_national_rail_availability or check_metro_availability. "
                 "Only call a tool when needed. Output nothing except tool calls."
+                "Policy/rules/conduct/compensation/luggage/bicycle questions → search_policy or search_travel_policies. "
             ),
         )
         if debug:
