@@ -5,7 +5,7 @@ This module handles all queries to Neo4j.
 """
 
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Any, cast
 from neo4j import GraphDatabase
 from skeleton.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
@@ -30,39 +30,42 @@ def query_shortest_route(
     network: str = "auto",
 ) -> dict:
     """
-    Find the fastest path between two stations using shortestPath().
-    Works on metro-only, rail-only, or cross-network journeys.
+    Find the absolute fastest path between two stations based on real travel time,
+    not just the fewer station hops. Supports cross-network transfers.
     """
+    # 根據前綴動態決定標籤，精準鎖定節點起點與終點
     from_label = "MetroStation" if origin_id.startswith("MS") else "NationalRailStation"
     to_label   = "MetroStation" if destination_id.startswith("MS") else "NationalRailStation"
 
+    # 💡 核心優化：拋棄盲目的 shortestPath()，改用路徑權重加總(REDUCE)並依時間正序排列，找出真正的「最快路徑」
+    cypher_sql = f"""
+        MATCH (start:{from_label} {{station_id: $from_id}}),
+              (end:{to_label} {{station_id: $to_id}})
+        MATCH p = (start)-[:METRO_LINK|RAIL_LINK|INTERCHANGE_TO*1..15]-(end)
+        WITH p, 
+             nodes(p) AS ns, 
+             relationships(p) AS rels,
+             reduce(t = 0, r IN relationships(p) | t + coalesce(r.travel_time_min, r.walk_time_min, 0)) AS total_time
+        RETURN 
+            [n IN ns | {{
+                station_id: n.station_id,
+                name: n.name,
+                type: CASE WHEN n:MetroStation THEN 'metro' ELSE 'national_rail' END
+            }}] AS stations,
+            [r IN rels | {{
+                type: type(r),
+                line: coalesce(r.line, ''),
+                travel_time_min: r.travel_time_min,
+                walk_time_min: r.walk_time_min
+            }}] AS links,
+            total_time AS total_time
+        ORDER BY total_time ASC
+        LIMIT 1
+    """
+
     with _driver() as driver:
         with driver.session() as session:
-            result = session.run(
-                f"""
-                MATCH (start:{from_label} {{station_id: $from_id}}),
-                      (end:{to_label}   {{station_id: $to_id}}),
-                      p = shortestPath(
-                            (start)-[:METRO_LINK|RAIL_LINK|INTERCHANGE_TO*]-(end)
-                          )
-                RETURN [n IN nodes(p) | {{
-                            station_id: n.station_id,
-                            name: n.name,
-                            type: CASE WHEN n:MetroStation THEN 'metro' ELSE 'national_rail' END
-                       }}] AS stations,
-                       [r IN relationships(p) | {{
-                            type: type(r),
-                            line: r.line,
-                            travel_time_min: r.travel_time_min,
-                            walk_time_min: r.walk_time_min
-                       }}] AS links,
-                       reduce(t = 0, r IN relationships(p) |
-                            t + coalesce(r.travel_time_min, r.walk_time_min, 0)
-                       ) AS total_time
-                """,
-                from_id=origin_id,
-                to_id=destination_id,
-            )
+            result = session.run(cypher_sql, from_id=origin_id, to_id=destination_id)
             record = result.single()
 
     if not record:
@@ -79,8 +82,12 @@ def query_shortest_route(
 
     stops = []
     for i, s in enumerate(stations):
-        stop = {"order": i + 1, "station_id": s["station_id"],
-                "name": s["name"], "network": s["type"]}
+        stop = {
+            "order": i + 1, 
+            "station_id": s["station_id"],
+            "name": s["name"], 
+            "network": s["type"]
+        }
         if i < len(links):
             lk = links[i]
             stop["connection_type"] = lk["type"]
@@ -99,7 +106,7 @@ def query_shortest_route(
         "from_station": stations[0]["name"],
         "to_station":   stations[-1]["name"],
         "stops": stops,
-        "total_time_min": total,
+        "total_time_min": int(total),
         "transfers": transfers,
         "lines_used": list(dict.fromkeys(lines_used)),
     }
@@ -115,55 +122,53 @@ def query_alternative_routes(
     max_routes: int = 3,
 ) -> dict:
     """
-    Find the fastest path that avoids a specific closed/delayed station.
+    Find the fastest alternative path that completely circumvents a closed/delayed station.
     """
     from_label  = "MetroStation" if origin_id.startswith("MS") else "NationalRailStation"
     to_label    = "MetroStation" if destination_id.startswith("MS") else "NationalRailStation"
 
     with _driver() as driver:
         with driver.session() as session:
+            # 安全查詢被封閉車站的名稱
             avoid_info = session.run(
-                "MATCH (n {station_id: $id}) RETURN n.name AS name",
+                "MATCH (n) WHERE n.station_id = $id RETURN n.name AS name",
                 id=avoid_station_id,
             ).single()
             avoid_name = avoid_info["name"] if avoid_info else avoid_station_id
 
-            result = session.run(
-                f"""
+            # 💡 核心優化：利用 NONE 關鍵字在全路徑生成時就排除該站，並依據時間代價排序
+            cypher_sql = f"""
                 MATCH (start:{from_label} {{station_id: $from_id}}),
-                      (end:{to_label}   {{station_id: $to_id}})
-                MATCH p = shortestPath(
-                            (start)-[:METRO_LINK|RAIL_LINK|INTERCHANGE_TO*]-(end)
-                          )
+                      (end:{to_label} {{station_id: $to_id}})
+                MATCH p = (start)-[:METRO_LINK|RAIL_LINK|INTERCHANGE_TO*1..15]-(end)
                 WHERE NONE(n IN nodes(p) WHERE n.station_id = $avoid_id)
-                RETURN [n IN nodes(p) | {{
-                            station_id: n.station_id,
-                            name: n.name,
-                            type: CASE WHEN n:MetroStation THEN 'metro' ELSE 'national_rail' END
-                       }}] AS stations,
-                       [r IN relationships(p) | {{
-                            type: type(r),
-                            line: r.line,
-                            travel_time_min: r.travel_time_min,
-                            walk_time_min: r.walk_time_min
-                       }}] AS links,
-                       reduce(t = 0, r IN relationships(p) |
-                            t + coalesce(r.travel_time_min, r.walk_time_min, 0)
-                       ) AS total_time
+                WITH p, 
+                     reduce(t = 0, r IN relationships(p) | t + coalesce(r.travel_time_min, r.walk_time_min, 0)) AS total_time
+                RETURN 
+                    [n IN nodes(p) | {{
+                        station_id: n.station_id,
+                        name: n.name,
+                        type: CASE WHEN n:MetroStation THEN 'metro' ELSE 'national_rail' END
+                    }}] AS stations,
+                    [r IN relationships(p) | {{
+                        type: type(r),
+                        line: coalesce(r.line, ''),
+                        travel_time_min: r.travel_time_min,
+                        walk_time_min: r.walk_time_min
+                    }}] AS links,
+                    total_time AS total_time
                 ORDER BY total_time ASC
                 LIMIT 1
-                """,
-                from_id=origin_id,
-                to_id=destination_id,
-                avoid_id=avoid_station_id,
-            )
+            """
+            
+            result = session.run(cypher_sql, from_id=origin_id, to_id=destination_id, avoid_id=avoid_station_id)
             record = result.single()
 
     if not record:
         return {
             "found": False,
             "avoided_station": avoid_name,
-            "message": f"⚠️ {avoid_name} 封閉中，且找不到替代路線。建議改搭公車或聯繫客服。",
+            "message": f"⚠️ {avoid_name} 封閉中，且找不到替代繞道波段。建議改搭公車或聯繫客服。",
         }
 
     stations = record["stations"]
@@ -172,8 +177,12 @@ def query_alternative_routes(
 
     stops = []
     for i, s in enumerate(stations):
-        stop = {"order": i + 1, "station_id": s["station_id"],
-                "name": s["name"], "network": s["type"]}
+        stop = {
+            "order": i + 1, 
+            "station_id": s["station_id"],
+            "name": s["name"], 
+            "network": s["type"]
+        }
         if i < len(links):
             lk = links[i]
             stop["connection_type"] = lk["type"]
@@ -190,8 +199,8 @@ def query_alternative_routes(
         "to_station":      stations[-1]["name"],
         "avoided_station": avoid_name,
         "stops":           stops,
-        "total_time_min":  total,
-        "note": f"⚠️ {avoid_name} 目前封閉，此為繞道替代路線。",
+        "total_time_min":  int(total),
+        "note": f"⚠️ {avoid_name} 目前封閉，此為繞道替代最快路徑。",
     }
 
 
@@ -206,27 +215,29 @@ def query_interchange_path(origin_id: str, destination_id: str) -> dict:
 
 def query_delay_ripple(delayed_station_id: str, hops: int = 2) -> list[dict]:
     """
-    Find all stations within N hops of a disrupted station.
+    Find all downstream stations within N拓撲步數(hops) of a disrupted station.
+    Useful for proactive passenger alerting.
+    """
+    # 💡 核心優化：將 hops 強制轉化為安全正整數防範注入，並使用穩固的拓撲路徑深度限制語法
+    safe_hops = max(1, min(int(hops), 5))
+    
+    cypher_sql = f"""
+        MATCH (start {{station_id: $station_id}})
+        MATCH (start)-[:METRO_LINK|RAIL_LINK*1..{safe_hops}]-(affected)
+        WHERE affected.station_id <> $station_id
+        WITH DISTINCT affected, start
+        MATCH p = shortestPath((start)-[:METRO_LINK|RAIL_LINK*]-(affected))
+        RETURN 
+            affected.station_id AS station_id,
+            affected.name       AS name,
+            affected.lines      AS lines_affected,
+            length(p)           AS hops_away
+        ORDER BY hops_away ASC
     """
     with _driver() as driver:
         with driver.session() as session:
-            result = session.run(
-                """
-                MATCH (start {station_id: $station_id})
-                MATCH (start)-[:METRO_LINK|RAIL_LINK*1..$hops]-(affected)
-                WHERE affected.station_id <> $station_id
-                RETURN DISTINCT
-                    affected.station_id AS station_id,
-                    affected.name       AS name,
-                    affected.lines      AS lines_affected,
-                    min(length(shortestPath(
-                        (start)-[:METRO_LINK|RAIL_LINK*]-(affected)
-                    ))) AS hops_away
-                ORDER BY hops_away
-                """,
-                station_id=delayed_station_id,
-                hops=hops,
-            )
+            # cast to Any to satisfy driver typing (LiteralString | Query) in type-checkers
+            result = session.run(cast(Any, cypher_sql), station_id=delayed_station_id)
             return [dict(r) for r in result]
 
 
