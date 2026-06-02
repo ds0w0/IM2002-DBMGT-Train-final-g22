@@ -88,6 +88,19 @@ CREATE TABLE IF NOT EXISTS feedback (
     submitted_at TIMESTAMPTZ NOT NULL
 );
 
+-- 6. 捷運搭乘歷史紀錄表 (對齊 Task 2b query_user_bookings)
+CREATE TABLE IF NOT EXISTS metro_travel_history (
+    trip_id                VARCHAR(20)   PRIMARY KEY,
+    user_id                VARCHAR(10)   NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    schedule_id            VARCHAR(20)   NOT NULL, -- 對齊捷運班表 ID
+    origin_station_id      VARCHAR(10)   NOT NULL, -- 進站捷運站 ID
+    destination_station_id VARCHAR(10),            -- 出站捷運站 ID (允許為空以防尚未刷出)
+    tap_in_at              TIMESTAMPTZ   NOT NULL, -- 進站刷卡時間
+    tap_out_at             TIMESTAMPTZ,            -- 出站刷卡時間
+    fare_usd               NUMERIC(10,2) NOT NULL, -- 精準捷運票價
+    status                 VARCHAR(20)   NOT NULL  -- 'completed', 'active' 等狀態
+);
+
 -- ============================================================
 --  VECTOR SCHEMA  (RAG / Help Desk) — do not modify
 -- ============================================================
