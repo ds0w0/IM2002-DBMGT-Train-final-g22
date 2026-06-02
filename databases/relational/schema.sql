@@ -101,6 +101,64 @@ CREATE TABLE IF NOT EXISTS metro_travel_history (
     status                 VARCHAR(20)   NOT NULL  -- 'completed', 'active' 等狀態
 );
 
+-- 7. 捷運站點表
+CREATE TABLE IF NOT EXISTS metro_stations (
+    station_id VARCHAR(10) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    lines JSONB NOT NULL,
+    zone INT,
+    has_interchange BOOLEAN DEFAULT FALSE
+);
+
+-- 8. 國家鐵路站點表
+CREATE TABLE IF NOT EXISTS national_rail_stations (
+    station_id VARCHAR(10) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    city VARCHAR(100),
+    has_interchange BOOLEAN DEFAULT FALSE
+);
+
+-- 9. 捷運班表 (包含 JSONB 以支援複雜陣列查詢)
+CREATE TABLE IF NOT EXISTS metro_schedules (
+    schedule_id VARCHAR(20) PRIMARY KEY,
+    line VARCHAR(10) NOT NULL,
+    direction VARCHAR(20) NOT NULL,
+    origin_station_id VARCHAR(10) NOT NULL,
+    destination_station_id VARCHAR(10) NOT NULL,
+    stops_in_order JSONB NOT NULL,
+    first_train_time VARCHAR(10),
+    last_train_time VARCHAR(10),
+    travel_time_from_origin_min JSONB,
+    base_fare_usd NUMERIC(10,2),
+    per_stop_rate_usd NUMERIC(10,2),
+    frequency_min INT
+);
+
+-- 10. 國家鐵路班表
+CREATE TABLE IF NOT EXISTS national_rail_schedules (
+    schedule_id VARCHAR(20) PRIMARY KEY,
+    train_number VARCHAR(20),
+    route_name VARCHAR(100),
+    origin_station_id VARCHAR(10) NOT NULL,
+    destination_station_id VARCHAR(10) NOT NULL,
+    departure_time VARCHAR(10),
+    arrival_time VARCHAR(10),
+    route_stations VARCHAR[] NOT NULL, -- 支援 ARRAY[%s, %s] 查詢
+    travel_time_from_origin_min JSONB,
+    base_fare_usd NUMERIC(10,2),
+    per_stop_rate_usd NUMERIC(10,2),
+    total_seats INT DEFAULT 40
+);
+
+-- 11. 國家鐵路座位佈局表
+CREATE TABLE IF NOT EXISTS seat_layouts (
+    id SERIAL PRIMARY KEY,
+    coach VARCHAR(2) NOT NULL,
+    seat_id VARCHAR(10) NOT NULL,
+    seat_row INT NOT NULL,
+    seat_column VARCHAR(2) NOT NULL,
+    fare_class VARCHAR(20) NOT NULL
+);
 -- ============================================================
 --  VECTOR SCHEMA  (RAG / Help Desk) — do not modify
 -- ============================================================
