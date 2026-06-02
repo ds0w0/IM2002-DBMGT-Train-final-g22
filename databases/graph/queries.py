@@ -18,7 +18,8 @@ def example_count_nodes() -> int:
     with _driver() as driver:
         with driver.session() as session:
             result = session.run("MATCH (n) RETURN count(n) AS total")
-            return result.single()["total"]
+            record = result.single()
+            return record["total"] if record is not None else 0
 
 
 # ── FASTEST ROUTE ─────────────────────────────────────────────────────────────
