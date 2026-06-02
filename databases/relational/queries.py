@@ -28,6 +28,7 @@ import string
 from datetime import datetime, timezone
 from typing import Optional
 
+import importlib
 import psycopg2
 import psycopg2.extras
 
@@ -932,27 +933,17 @@ def query_travel_policies(query: str) -> list[dict]:
     """
     Search travel policies (bicycles, pets, lost property, luggage) by meaning.
     """
-    from skeleton.llm_provider import get_embedding
-    
-    # 將使用者的問題轉成向量
-    query_vector = get_embedding(query)
-    
-    conn = _connect() # 呼叫你們現有的連線函式
     try:
-        with conn.cursor() as cur:
-            # 透過 pgvector 進行餘弦相似度比對
-            cur.execute("""
-                SELECT title, content, 
-                       1 - (embedding <=> %s::vector) AS similarity
-                FROM policy_documents
-                ORDER BY similarity DESC
-                LIMIT 3
-            """, (query_vector,))
-            
-            results = cur.fetchall()
-            return [
-                {"title": row["title"], "content": row["content"], "similarity": round(row["similarity"], 3)}
-                for row in results
-            ]
-    finally:
-        conn.close()        
+        llm_module = importlib.import_module("skeleton.llm")
+        get_embedding = llm_module.get_embedding
+    except (ImportError, AttributeError) as exc:
+        raise RuntimeError(
+            "Unable to load the embedding provider. Ensure skeleton.llm is available."
+        ) from exc
+
+    query_vector = get_embedding(query)
+    results = query_policy_vector_search(query_vector, top_k=3)
+    return [
+        {"title": row["title"], "content": row["content"], "similarity": round(row["similarity"], 3)}
+        for row in results
+    ]
