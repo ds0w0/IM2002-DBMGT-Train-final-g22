@@ -937,7 +937,7 @@ def query_travel_policies(query: str) -> list[dict]:
     # 將使用者的問題轉成向量
     query_vector = get_embedding(query)
     
-    conn = get_db_connection() # 呼叫你們現有的連線函式
+    conn = _connect() # 呼叫你們現有的連線函式
     try:
         with conn.cursor() as cur:
             # 透過 pgvector 進行餘弦相似度比對
