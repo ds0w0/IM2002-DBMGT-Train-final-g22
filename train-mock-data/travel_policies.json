@@ -5,9 +5,9 @@
     "bicycles": {
       "foldable_bicycles": {
         "permitted": true,
-        "max_folded_dimensions_cm": "90 × 45 × 30",
+        "max_folded_dimensions_cm": "90 x 45 x 30",
         "peak_hour_restriction": true,
-        "peak_hours": "07:00–09:30 and 17:00–20:00, Monday to Friday",
+        "peak_hours": "07:00-09:30 and 17:00-20:00, Monday to Friday",
         "peak_hour_rule": "Foldable bicycles are NOT permitted during peak hours even if folded.",
         "fee": 0.00,
         "placement": "Passenger is responsible for keeping the bicycle with them and must not block aisles or doors."
@@ -23,15 +23,15 @@
     },
     "luggage": {
       "items_per_passenger": 2,
-      "max_dimensions_per_item_cm": "70 × 50 × 30",
+      "max_dimensions_per_item_cm": "70 x 50 x 30",
       "oversized_peak_restriction": true,
-      "oversized_peak_rule": "Items exceeding the size limit are not permitted during peak hours (07:00–09:30 and 17:00–20:00 weekdays).",
+      "oversized_peak_rule": "Items exceeding the size limit are not permitted during peak hours (07:00-09:30 and 17:00-20:00 weekdays).",
       "placement": "All luggage must be held by the passenger or placed in the luggage area at the ends of the carriage. Luggage must not block seats, aisles, or doors."
     },
     "pets": {
       "permitted": true,
       "conditions": "Small pets in fully enclosed hard or soft carriers only.",
-      "max_carrier_dimensions_cm": "50 × 35 × 25",
+      "max_carrier_dimensions_cm": "50 x 35 x 25",
       "fee": 0.00,
       "seat_occupancy": "Pets must not occupy a seat.",
       "exceptions": "Guide dogs and registered assistance animals are permitted at all times without a carrier.",
@@ -65,13 +65,13 @@
         "peak_hour_restriction": false,
         "fee": 0.00,
         "placement": "Must be stored in the overhead rack or in the space at the end of the carriage.",
-        "max_folded_dimensions_cm": "90 × 45 × 30"
+        "max_folded_dimensions_cm": "90 x 45 x 30"
       },
       "standard_bicycles": {
         "permitted": true,
         "conditions": "Standard bicycles are permitted in designated bicycle bays only. Maximum 2 bicycles per train.",
         "peak_hour_restriction": true,
-        "peak_hours": "07:00–09:30 and 16:30–19:00, Monday to Friday",
+        "peak_hours": "07:00-09:30 and 16:30-19:00, Monday to Friday",
         "peak_hour_rule": "Standard bicycles are NOT permitted on national rail services during peak hours.",
         "fee_usd": 2.00,
         "booking": "Bicycle spaces are first-come-first-served and cannot be reserved in advance. Fee is payable at the platform bicycle bay gate.",
@@ -85,7 +85,7 @@
     "luggage": {
       "items_per_passenger": 3,
       "overhead_rack": "Items must fit in the overhead luggage rack above seats. No formal size restriction, but items must not cause inconvenience to other passengers.",
-      "large_items": "Oversized items (e.g. large suitcases) should be placed in the dedicated luggage areas at the ends of each carriage.",
+      "large_items": "Oversized items such as large suitcases should be placed in the dedicated luggage areas at the ends of each carriage.",
       "storage_fee": 0.00,
       "notes": "Passengers are responsible for their own luggage at all times. The operator is not liable for lost or damaged luggage."
     },
@@ -133,5 +133,35 @@
     ],
     "smoking_and_vaping": "Strictly prohibited on all train carriages and at all station platforms.",
     "conduct": "Passengers behaving in a manner that causes distress or danger to other passengers or staff may be removed from the train. In serious cases, the operator reserves the right to involve law enforcement."
+  },
+  "lost_property": {
+    "reporting": {
+      "how_to_report": "Lost property can be reported via the app, website, or by contacting customer service within 24 hours of travel.",
+      "required_information": ["Travel date", "Route or service taken", "Description of item", "Approximate time and location lost"]
+    },
+    "collection": {
+      "location": "Lost items found on trains or at stations are held at the nearest staffed station for up to 7 days.",
+      "collection_hours": "Monday to Friday 08:00-18:00, Saturday 09:00-16:00. Closed Sundays.",
+      "id_required": true,
+      "id_description": "Valid photo ID and booking reference required to collect lost property.",
+      "fee": 0.00
+    },
+    "unclaimed_items": "Items not collected within 7 days are transferred to the central lost property office and held for a further 28 days before disposal.",
+    "valuables": "High-value items such as electronics, jewellery, and documents are logged separately and held securely. Passengers are encouraged to report these immediately.",
+    "liability": "The operator is not liable for lost, stolen, or damaged personal belongings. Passengers are advised to keep valuables with them at all times."
+  },
+  "planned_disruptions": {
+    "engineering_works": {
+      "advance_notice": "Planned engineering works are announced at least 7 days in advance via the app, website, and station notices.",
+      "replacement_services": "Rail replacement bus services operate between affected stations during planned engineering works. Journey times will be longer than usual.",
+      "refund_eligibility": "Passengers holding valid tickets for services cancelled due to planned engineering works are entitled to a full refund or free rebooking on an alternative service.",
+      "how_to_claim": "Refunds for engineering works cancellations can be claimed via the app or customer service within 28 days."
+    },
+    "unplanned_disruptions": {
+      "real_time_updates": "Live service updates are available in the app and on platform information boards.",
+      "delay_threshold_for_notification": "Passengers are notified via app push notification if their booked service is delayed by 15 minutes or more.",
+      "alternative_routing": "When a service is severely delayed or cancelled, passengers may travel on the next available service on the same route at no extra charge.",
+      "compensation": "Delay compensation is governed by policy RF005."
+    }
   }
 }

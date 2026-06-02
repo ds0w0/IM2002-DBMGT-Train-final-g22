@@ -70,16 +70,18 @@ def build_documents():
                 "content": _text({section: br[section]}),
             })
 
-    # travel_policies.json — one document per network section
+    # travel_policies.json — one document per section (auto-detect all keys)
     tp = _load("travel_policies.json")
-    for section in ("metro", "national_rail"):
-        if section in tp:
-            docs.append({
-                "title": f"Travel Policies — {section.replace('_', ' ').title()}",
-                "category": "conduct",
-                "source_file": "travel_policies.json",
-                "content": _text({section: tp[section]}),
-            })
+    skip_keys = {"version", "last_updated"}
+    for section, value in tp.items():
+        if section in skip_keys:
+            continue
+        docs.append({
+            "title": f"Travel Policies — {section.replace('_', ' ').title()}",
+            "category": "conduct",
+            "source_file": "travel_policies.json",
+            "content": _text({section: value}),
+        })
 
     return docs
 
