@@ -33,11 +33,12 @@ def query_shortest_route(
     Find the absolute fastest path between two stations based on real travel time,
     not just the fewer station hops. Supports cross-network transfers.
     """
-    # 根據前綴動態決定標籤，精準鎖定節點起點與終點
+    # Dynamically determine node labels based on station ID prefix
     from_label = "MetroStation" if origin_id.startswith("MS") else "NationalRailStation"
     to_label   = "MetroStation" if destination_id.startswith("MS") else "NationalRailStation"
 
-    # 💡 核心優化：拋棄盲目的 shortestPath()，改用路徑權重加總(REDUCE)並依時間正序排列，找出真正的「最快路徑」
+    # Core optimization: instead of blind shortestPath(), use weighted path reduction (REDUCE)
+    # sorted by total travel time to find the truly fastest route
     cypher_sql = f"""
         MATCH (start:{from_label} {{station_id: $from_id}}),
               (end:{to_label} {{station_id: $to_id}})
@@ -73,7 +74,7 @@ def query_shortest_route(
             "found": False,
             "origin_id": origin_id,
             "destination_id": destination_id,
-            "message": f"找不到從 {origin_id} 到 {destination_id} 的路線。",
+            "message": f"No route found from {origin_id} to {destination_id}.",
         }
 
     stations = record["stations"]
@@ -83,16 +84,16 @@ def query_shortest_route(
     stops = []
     for i, s in enumerate(stations):
         stop = {
-            "order": i + 1, 
+            "order": i + 1,
             "station_id": s["station_id"],
-            "name": s["name"], 
+            "name": s["name"],
             "network": s["type"]
         }
         if i < len(links):
             lk = links[i]
             stop["connection_type"] = lk["type"]
             if lk["type"] == "INTERCHANGE_TO":
-                stop["action"] = f"步行轉乘（約 {lk.get('walk_time_min', 5)} 分鐘）"
+                stop["action"] = f"Walk to interchange (approx. {lk.get('walk_time_min', 5)} min)"
             else:
                 stop["line"] = lk.get("line", "")
                 stop["time_to_next_min"] = lk.get("travel_time_min", 0)
@@ -129,14 +130,15 @@ def query_alternative_routes(
 
     with _driver() as driver:
         with driver.session() as session:
-            # 安全查詢被封閉車站的名稱
+            # Safely retrieve the name of the closed station
             avoid_info = session.run(
                 "MATCH (n) WHERE n.station_id = $id RETURN n.name AS name",
                 id=avoid_station_id,
             ).single()
             avoid_name = avoid_info["name"] if avoid_info else avoid_station_id
 
-            # 💡 核心優化：利用 NONE 關鍵字在全路徑生成時就排除該站，並依據時間代價排序
+            # Core optimization: use NONE keyword to exclude the avoided station
+            # during full path generation, then sort by total time cost
             cypher_sql = f"""
                 MATCH (start:{from_label} {{station_id: $from_id}}),
                       (end:{to_label} {{station_id: $to_id}})
@@ -160,7 +162,7 @@ def query_alternative_routes(
                 ORDER BY total_time ASC
                 LIMIT 1
             """
-            
+
             result = session.run(cypher_sql, from_id=origin_id, to_id=destination_id, avoid_id=avoid_station_id)
             record = result.single()
 
@@ -168,7 +170,7 @@ def query_alternative_routes(
         return {
             "found": False,
             "avoided_station": avoid_name,
-            "message": f"⚠️ {avoid_name} 封閉中，且找不到替代繞道波段。建議改搭公車或聯繫客服。",
+            "message": f"⚠️ {avoid_name} is currently closed and no alternative route was found. Consider taking a bus or contacting customer service.",
         }
 
     stations = record["stations"]
@@ -178,16 +180,16 @@ def query_alternative_routes(
     stops = []
     for i, s in enumerate(stations):
         stop = {
-            "order": i + 1, 
+            "order": i + 1,
             "station_id": s["station_id"],
-            "name": s["name"], 
+            "name": s["name"],
             "network": s["type"]
         }
         if i < len(links):
             lk = links[i]
             stop["connection_type"] = lk["type"]
             if lk["type"] == "INTERCHANGE_TO":
-                stop["action"] = f"步行轉乘（約 {lk.get('walk_time_min', 5)} 分鐘）"
+                stop["action"] = f"Walk to interchange (approx. {lk.get('walk_time_min', 5)} min)"
             else:
                 stop["line"] = lk.get("line", "")
                 stop["time_to_next_min"] = lk.get("travel_time_min", 0)
@@ -200,14 +202,14 @@ def query_alternative_routes(
         "avoided_station": avoid_name,
         "stops":           stops,
         "total_time_min":  int(total),
-        "note": f"⚠️ {avoid_name} 目前封閉，此為繞道替代最快路徑。",
+        "note": f"⚠️ {avoid_name} is currently closed. This is the fastest available detour route.",
     }
 
 
 # ── CROSS-NETWORK INTERCHANGE PATH ───────────────────────────────────────────
 
 def query_interchange_path(origin_id: str, destination_id: str) -> dict:
-    """跨網路路徑，等同於 query_shortest_route 的跨網路版本。"""
+    """Cross-network path — equivalent to query_shortest_route with network='auto'."""
     return query_shortest_route(origin_id, destination_id, network="auto")
 
 
@@ -215,12 +217,13 @@ def query_interchange_path(origin_id: str, destination_id: str) -> dict:
 
 def query_delay_ripple(delayed_station_id: str, hops: int = 2) -> list[dict]:
     """
-    Find all downstream stations within N拓撲步數(hops) of a disrupted station.
+    Find all downstream stations within N topological hops of a disrupted station.
     Useful for proactive passenger alerting.
     """
-    # 💡 核心優化：將 hops 強制轉化為安全正整數防範注入，並使用穩固的拓撲路徑深度限制語法
+    # Core optimization: cast hops to a safe positive integer to prevent injection,
+    # and use a robust topological depth limit syntax
     safe_hops = max(1, min(int(hops), 5))
-    
+
     cypher_sql = f"""
         MATCH (start {{station_id: $station_id}})
         MATCH (start)-[:METRO_LINK|RAIL_LINK*1..{safe_hops}]-(affected)
@@ -260,6 +263,8 @@ def query_station_connections(station_id: str) -> list[dict]:
                 station_id=station_id,
             )
             return [dict(r) for r in result]
+
+
 # ── CHEAPEST ROUTE ────────────────────────────────────────────────────────────
 
 def query_cheapest_route(
