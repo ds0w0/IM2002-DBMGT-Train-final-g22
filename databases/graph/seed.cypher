@@ -2,26 +2,26 @@
 // TransitFlow — Neo4j Graph Seed File
 // databases/graph/seed.cypher
 //
-// 說明：本檔案由 skeleton/seed_neo4j.py 執行時自動載入。
-//       所有節點與關係均使用 MERGE，可安全重複執行。
+// Description: This file is loaded automatically by skeleton/seed_neo4j.py.
+//              All nodes and relationships use MERGE for safe re-execution.
 //
-// 節點類型：
-//   MetroStation       — 捷運站 (MS01–MS20)
-//   NationalRailStation — 國鐵站 (NR01–NR10)
+// Node types:
+//   MetroStation        — Metro stations (MS01–MS20)
+//   NationalRailStation — National rail stations (NR01–NR10)
 //
-// 關係類型：
-//   METRO_LINK          — 捷運站之間的相鄰連線
-//   RAIL_LINK           — 國鐵站之間的相鄰連線
-//   INTERCHANGE_TO      — 捷運站 ↔ 國鐵站的轉乘連線
+// Relationship types:
+//   METRO_LINK     — Adjacent connections between metro stations
+//   RAIL_LINK      — Adjacent connections between national rail stations
+//   INTERCHANGE_TO — Transfer connections between metro and national rail
 // ============================================================
 
 // ─────────────────────────────────────────────────────────────
-// SECTION 1 — 清除舊資料（重新 seed 時使用）
+// SECTION 1 — Clear existing data (used when re-seeding)
 // ─────────────────────────────────────────────────────────────
 MATCH (n) DETACH DELETE n;
 
 // ─────────────────────────────────────────────────────────────
-// SECTION 2 — 建立捷運站節點 (MetroStation)
+// SECTION 2 — Create metro station nodes (MetroStation)
 // ─────────────────────────────────────────────────────────────
 
 MERGE (s:MetroStation {station_id: "MS01"})
@@ -150,7 +150,7 @@ SET s.name = "Thornton",
     s.is_interchange_national_rail = false;
 
 // ─────────────────────────────────────────────────────────────
-// SECTION 3 — 建立國鐵站節點 (NationalRailStation)
+// SECTION 3 — Create national rail station nodes (NationalRailStation)
 // ─────────────────────────────────────────────────────────────
 
 MERGE (s:NationalRailStation {station_id: "NR01"})
@@ -206,7 +206,9 @@ SET s.name = "Langford End",
     s.is_interchange_metro = false;
 
 // ─────────────────────────────────────────────────────────────
-// SECTION 4 — 建立捷運站之間的 METRO_LINK 關係
+// SECTION 4 — Create METRO_LINK relationships between metro stations
+// Source: adjacent_stations array in each MetroStation
+// Note: bidirectional (one edge per direction)
 // ─────────────────────────────────────────────────────────────
 
 // MS01 Central Square
@@ -334,7 +336,7 @@ MATCH (a:MetroStation {station_id: "MS20"}), (b:MetroStation {station_id: "MS05"
 MERGE (a)-[r:METRO_LINK {line: "M1"}]->(b) SET r.travel_time_min = 2;
 
 // ─────────────────────────────────────────────────────────────
-// SECTION 5 — 建立國鐵站之間的 RAIL_LINK 關係
+// SECTION 5 — Create RAIL_LINK relationships between national rail stations
 // ─────────────────────────────────────────────────────────────
 
 // NR01 Central Station
@@ -394,7 +396,9 @@ MATCH (a:NationalRailStation {station_id: "NR10"}), (b:NationalRailStation {stat
 MERGE (a)-[r:RAIL_LINK {line: "NR2"}]->(b) SET r.travel_time_min = 19;
 
 // ─────────────────────────────────────────────────────────────
-// SECTION 6 — 建立捷運 ↔ 國鐵轉乘關係 (INTERCHANGE_TO)
+// SECTION 6 — Create metro ↔ national rail interchange relationships (INTERCHANGE_TO)
+// Source: metro stations where is_interchange_national_rail = true
+// Bidirectional: one edge in each direction
 // ─────────────────────────────────────────────────────────────
 
 // MS01 (Central Square) ↔ NR01 (Central Station)
@@ -414,3 +418,4 @@ MATCH (m:MetroStation {station_id: "MS15"}), (n:NationalRailStation {station_id:
 MERGE (m)-[r:INTERCHANGE_TO]->(n) SET r.walk_time_min = 5, r.interchange_type = "metro_to_rail";
 MATCH (m:MetroStation {station_id: "MS15"}), (n:NationalRailStation {station_id: "NR07"})
 MERGE (n)-[r:INTERCHANGE_TO]->(m) SET r.walk_time_min = 5, r.interchange_type = "rail_to_metro";
+```
