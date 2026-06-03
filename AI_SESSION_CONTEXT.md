@@ -257,13 +257,10 @@ def query_station_connections(station_id: str) -> list[dict]: ...
 
 <!-- Add entries as you make decisions. Format: "Decision: X. Why: Y." -->
 
-## Team Decisions Log
-
 - [x] Schema Design: Split sensitive hashes out into a separate `user_credentials` child table linked via 1:1 foreign keys to achieve Third Normal Form (3NF) and isolate core authentication entities.
 - [x] Relational Indexes: Attached non-clustered explicit indexes (`idx_rail_bookings_user_id`, `idx_feedback_user_id`, `idx_metro_history_user_id`) on foreign keys to optimize subquery join bottlenecks.
 - [x] Concurrency Isolation: Deployed pessimistic row-level locking (`FOR UPDATE`) inside `execute_booking` transactional scripts to safeguard against race conditions under heavy parallel loads.
 - [x] Module Decoupling: Patched runtime circular imports between langconfig pipelines and query functions via dynamic context modules using `importlib`.
-
 
 ## Prompts That Worked
 
