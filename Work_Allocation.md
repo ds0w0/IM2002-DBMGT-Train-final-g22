@@ -28,7 +28,7 @@
 | **Task 3** — PostgreSQL seeding (`seed_postgres.py`) | **ds0w0** | **chocomint408**, yikes0000 | Configured dynamic tuple loaders using `execute_values` with complete `ON CONFLICT DO NOTHING` logic. Successfully seeded all 11 core tables (stations, schedules, user credentials, feedback, and metro history). |
 | **Task 4** — Neo4j graph design & seeding (`seed_neo4j.py`, `seed.cypher`) | **chocomint408** | | Architected graph database schema containing interchange networks, `METRO_LINK`, and topological costs. |
 | **Task 5** — Neo4j query functions (`graph/queries.py`) | **chocomint408** | **ds0w0** | Written initially by chocomint408. **ds0w0 provided refactoring support** during code integration to ensure precise time-weighted output sorting alignment. |
-| **Task 6** — Optional extension *(RAG Knowledge Base)* | **yikes0000** | chocomint408, ds0w0 | yikes0000 enriched unstructured policy JSON manuals with supporting logic guidance from chocomint408. ds0w0 refactored module loading via importlib to resolve lethal cyclic referencing. |
+| **Task 6** — Optional extension *(RAG Knowledge Base)* | **yikes0000** | chocomint408, ds0w0 | yikes0000 enriched unstructured policy JSON manuals with supporting testing guidance from chocomint408. ds0w0 subsequently refactored and streamlined the Python embedding module bindings via importlib to resolve lethal cyclic referencing. |
 
 ### Design Document
 
