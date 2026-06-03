@@ -1,5 +1,9 @@
 # Work Allocation Report — Group 22
 
+```text
+待修改項目：部分工作分配及實作部分說明調整。
+```
+
 ## 1. Team Members
 
 | Full Name | Student ID | GitHub Username | Email |
@@ -44,8 +48,8 @@
 | Member | Estimated % | Brief justification |
 | --- | --- | --- |
 | **張學睿 (ds0w0)** | **40%** | Designed the entire core relational database management layout, parameterised lookup structures, transaction scopes, and automated python table-seeding configurations. Provided critical module dependency fix. |
-| **[組員 B 姓名] (chocomint408)** | **40%** | Spearheaded the full graph database network architecture, Authoring Cypher link parameters, edge weights, and routing lookups. Conducted exhaustive localized application performance verification checks. |
-| **[組員 C 姓名] (yikes0000)** | **20%** | Expanded knowledge corpus files by authoring unstructured rail travel regulation inputs (lost items, penalty guidelines) and configured vector store baseline notes. |
+| **陸昱霖 (chocomint408)** | **40%** | Spearheaded the full graph database network architecture, Authoring Cypher link parameters, edge weights, and routing lookups. Conducted exhaustive localized application performance verification checks. |
+| **王宇崴 (yikes0000)** | **20%** | Expanded knowledge corpus files by authoring unstructured rail travel regulation inputs (lost items, penalty guidelines) and configured vector store baseline notes. |
 | **Total** | **100%** | |
 
 ---
