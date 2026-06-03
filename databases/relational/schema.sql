@@ -159,6 +159,16 @@ CREATE TABLE IF NOT EXISTS seat_layouts (
     seat_column VARCHAR(2) NOT NULL,
     fare_class VARCHAR(20) NOT NULL
 );
+
+-- 為 national_rail_bookings 的外鍵加上 HASH/B-TREE 索引
+CREATE INDEX IF NOT EXISTS idx_rail_bookings_user_id ON national_rail_bookings(user_id);
+
+-- 為 feedback 的外鍵加上索引
+CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback(user_id);
+
+-- 為 metro_travel_history 的外鍵加上索引
+CREATE INDEX IF NOT EXISTS idx_metro_history_user_id ON metro_travel_history(user_id);
+
 -- ============================================================
 --  VECTOR SCHEMA  (RAG / Help Desk) — do not modify
 -- ============================================================

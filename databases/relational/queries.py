@@ -577,6 +577,7 @@ def execute_booking(
                 SELECT booking_id FROM national_rail_bookings
                 WHERE schedule_id = %s AND travel_date = %s AND seat_id = %s
                   AND status IN ('completed', 'confirmed');
+                FOR UPDATE; -- 強制 Postgres 將這行座位紀錄鎖定，直到您的 commit 完成，完全杜絕 race conditions
             """
             cur.execute(check_sql, (schedule_id, travel_date, seat_id))
             if cur.fetchone() is not None:
@@ -928,7 +929,7 @@ def store_policy_document(
                 raise RuntimeError("Failed to insert policy document")
             return row[0]
 # 新加的(wei)
-
+# TASK 6 EXTENSION: Dynamic Module Embedding Loader & Policy RAG Expansion
 def query_travel_policies(query: str) -> list[dict]:
     """
     Search travel policies (bicycles, pets, lost property, luggage) by meaning.
