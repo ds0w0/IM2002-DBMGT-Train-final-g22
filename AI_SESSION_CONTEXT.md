@@ -29,13 +29,16 @@ TransitFlow is a Python-based AI chat assistant for a fictional transit operator
 - **Empty results:** Return `[]` or `None` (as documented), never raise an exception for "not found"
 - **SQL:** Use `%s` placeholders for all user inputs — never string-format into SQL
 - **Relational pattern:** Use `_connect()` helper + `psycopg2.extras.RealDictCursor`:
+
   ```python
   with _connect() as conn:
       with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
           cur.execute("SELECT ...", (param,))
           return [dict(row) for row in cur.fetchall()]
   ```
+
 - **Graph pattern:** Use `_driver()` helper + session:
+
   ```python
   with _driver() as driver:
       with driver.session() as session:
@@ -192,16 +195,9 @@ CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback(user_id);
 -- 為 metro_travel_history 的外鍵加上索引
 CREATE INDEX IF NOT EXISTS idx_metro_history_user_id ON metro_travel_history(user_id);
 
-```
-
+```text
 ## Agreed Graph Schema
 
-<!-- ============================================================
-  FILL THIS IN after your team agrees on Neo4j node labels and
-  relationship types.
-  ============================================================ -->
-
-```
 Node labels:
 - `MetroStation`: Represents a physical transit station on the subway network.
 - `RailStation`: Represents a physical transit station on the national rail network.
@@ -261,22 +257,22 @@ def query_station_connections(station_id: str) -> list[dict]: ...
 
 <!-- Add entries as you make decisions. Format: "Decision: X. Why: Y." -->
 
+## Team Decisions Log
+
 - [x] Schema Design: Split sensitive hashes out into a separate `user_credentials` child table linked via 1:1 foreign keys to achieve Third Normal Form (3NF) and isolate core authentication entities.
 - [x] Relational Indexes: Attached non-clustered explicit indexes (`idx_rail_bookings_user_id`, `idx_feedback_user_id`, `idx_metro_history_user_id`) on foreign keys to optimize subquery join bottlenecks.
-- [x] Graph schema: TODO — add your node label and relationship type decisions here
 - [x] Concurrency Isolation: Deployed pessimistic row-level locking (`FOR UPDATE`) inside `execute_booking` transactional scripts to safeguard against race conditions under heavy parallel loads.
 - [x] Module Decoupling: Patched runtime circular imports between langconfig pipelines and query functions via dynamic context modules using `importlib`.
+
 
 ## Prompts That Worked
 
 <!-- Share prompts that produced good output so teammates can reuse them. -->
 
-### Schema design prompt that worked:
-```
-"Design a highly robust PostgreSQL transactional schema for TransitFlow. Isolate sensitive passenger registration data from credentials by engineering a primary users entity and a detached user_credentials child table linked via an asynchronous ON DELETE CASCADE foreign key relation. Ensure all passenger booking logs, polymorphic payment logs, and metro history tracking tables use standard ISO TIMESTAMPTZ zones, exact decimal classes for monetary variables (NUMERIC(10,2)), and possess performance-oriented secondary lookup index bindings on every foreign key column identifier."
-```
+### Schema design prompt that worked
 
-### Query implementation prompt that worked:
-```
-Refactor the `query_travel_policies` function inside `databases/relational/queries.py` to decouple semantic embeddings query patterns. Avoid direct relational hardcoding by importing shared utilities dynamically using `importlib.import_module('skeleton.llm')` to cleanly eliminate Python runtime circular-dependency blocks.
-```
+"Design a highly robust PostgreSQL transactional schema for TransitFlow. Isolate sensitive passenger registration data from credentials by engineering a primary users entity and a detached user_credentials child table linked via an asynchronous ON DELETE CASCADE foreign key relation. Ensure all passenger booking logs, polymorphic payment logs, and metro history tracking tables use standard ISO TIMESTAMPTZ zones, exact decimal classes for monetary variables (NUMERIC(10,2)), and possess performance-oriented secondary lookup index bindings on every foreign key column identifier."
+
+### Query implementation prompt that worked
+
+"Refactor the `query_travel_policies` function inside `databases/relational/queries.py` to decouple semantic embeddings query patterns. Avoid direct relational hardcoding by importing shared utilities dynamically using `importlib.import_module('skeleton.llm')` to cleanly eliminate Python runtime circular-dependency blocks."
