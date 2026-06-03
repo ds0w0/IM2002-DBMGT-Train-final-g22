@@ -25,10 +25,10 @@
 | **Task 2b** — Seat & user queries | **ds0w0** | | Authored profile retrieval and joined relational table transaction logs. |
 | **Task 2c** — Write operations (`execute_booking`, `execute_cancellation`) | **ds0w0** | | Implemented rigorous multi-table transaction blocks with programmatic ROLLBACK error isolation. |
 | **Task 2d** — Authentication queries | **ds0w0** | | Developed cryptographically sound SHA-256 password salting flows to eliminate plain-text vectors. |
-| **Task 3** — PostgreSQL seeding (`seed_postgres.py`) | **ds0w0** | **chocomint408** | Configured dynamic tuple loaders using `execute_values` with complete `ON CONFLICT DO NOTHING` logic. |
+| **Task 3** — PostgreSQL seeding (`seed_postgres.py`) | **ds0w0** | **chocomint408**, yikes0000 | Configured dynamic tuple loaders using `execute_values` with complete `ON CONFLICT DO NOTHING` logic. Successfully seeded all 11 core tables (stations, schedules, user credentials, feedback, and metro history). |
 | **Task 4** — Neo4j graph design & seeding (`seed_neo4j.py`, `seed.cypher`) | **chocomint408** | | Architected graph database schema containing interchange networks, `METRO_LINK`, and topological costs. |
 | **Task 5** — Neo4j query functions (`graph/queries.py`) | **chocomint408** | **ds0w0** | Written initially by chocomint408. **ds0w0 provided refactoring support** during code integration to ensure precise time-weighted output sorting alignment. |
-| **Task 6** — Optional extension *(RAG Knowledge Base)* | **yikes0000** | chocomint408, ds0w0 | yikes0000 enriched unstructured JSON manuals. **ds0w0 added dynamic package loader** using `importlib` to bypass internal cyclic dependencies. |
+| **Task 6** — Optional extension *(RAG Knowledge Base)* | **yikes0000** | chocomint408, ds0w0 | yikes0000 enriched unstructured policy JSON manuals with supporting logic guidance from chocomint408. ds0w0 refactored module loading via importlib to resolve lethal cyclic referencing. |
 
 ### Design Document
 
@@ -58,7 +58,7 @@
 
 | Change | Original plan | Revised plan | Reason |
 | --- | --- | --- | --- |
-| **RAG Runtime Dependency Patch** | yikes0000 embeds hardcoded vector providers. | ds0w0 deployed an `importlib` module dynamic injection bridge. | Static circular referencing broke execution pipelines across files, requiring an ad-hoc module import refactor to ensure Gradio frontend stability. |
+| **RAG Runtime Dependency Patch** | yikes0000 embeds hardcoded vector providers. | ds0w0 deployed an `importlib` module dynamic injection bridge. | Static circular dependencies blocked the execution pipeline between language configurations and database query logic during cross-system integration, requiring ds0w0 to deploy a dynamic import patch. |
 
 ---
 
