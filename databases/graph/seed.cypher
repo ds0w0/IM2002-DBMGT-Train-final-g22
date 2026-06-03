@@ -1,6 +1,3 @@
-直接複製貼上：
-
-```cypher
 // ============================================================
 // TransitFlow — Neo4j Graph Seed File
 // databases/graph/seed.cypher
