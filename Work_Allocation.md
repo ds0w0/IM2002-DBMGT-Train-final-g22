@@ -1,56 +1,69 @@
-# Work Allocation
+# Work Allocation Report — Group 22
 
-```text
-目前的文件內容為AI複製貼上，待修改。
-```
+## 1. Team Members
 
-## 👨‍💻 隊員 A（建議由 Team Lead 或 SQL 較熟的人擔任）
-
-### 主導核心：PostgreSQL 關係型資料庫實作 (Task 1 + 基礎建設)
-
-* **負責檔案**：
-* databases/relational/schema.sql (設計 DDL 綱要)
-* skeleton/seed_postgres.py (實作大部份的 SQL 資料匯入)
-
-* **對應 JSON**：`registered_users.json`、`bookings.json`、`payments.json`、`feedback.json`。
-* **職責描述**：
-
-1. 負責搞定基礎建設（Docker、環境變數與 AI 模型切換測試）。
-2. 研究使用者、訂票、付款與回饋這四個欄位重複性高、具備嚴格外部鍵（Foreign Key）關係的資料。
-3. 設計 PostgreSQL 綱要，並撰寫大量邏輯較複雜的 SQL 批次灌資料腳本（Seeding）。
+| Full Name | Student ID | GitHub Username | Email |
+| --- | --- | --- | --- |
+| 張學睿 (Team Lead) | 113403520 | ds0w0 | <raythesnowman@gmail.com> |
+| 陸昱霖 | 112403517 | chocomint408 | <yulinlu866@gmail.com> |
+| 王宇崴 | 113403022 | yikes0000 | <weiwei950613@gmail.com> |
 
 ---
 
-## 👩‍💻 隊員 B
+## 2. Task Ownership
 
-### 主導核心：Neo4j 圖形資料庫與鐵路網拓撲 (Task 2)
+### Code Repository
 
-* **負責檔案**：
-* databases/graph/seed.cypher (定義圖形節點與關係)
-* skeleton/seed_neo4j.py (實作 Cypher 匯入邏輯)
-* databases/graph/queries.py (圖形演算法查詢，如最短路徑、轉乘)
+| Task | Primary Owner | Supporting Member(s) | Notes |
+| --- | --- | --- | --- |
+| **Task 1** — Relational schema design (`schema.sql`) | **ds0w0** | chocomint408 | Designed table structures for users, salt credentials, bookings, payments, and polymorphic feedback. |
+| **Task 2a** — Core availability & fare queries | **ds0w0** | | Authored parameterised SQL handlers for rail lookup occupancy and metro interval calculations. |
+| **Task 2b** — Seat & user queries | **ds0w0** | | Authored profile retrieval and joined relational table transaction logs. |
+| **Task 2c** — Write operations (`execute_booking`, `execute_cancellation`) | **ds0w0** | | Implemented rigorous multi-table transaction blocks with programmatic ROLLBACK error isolation. |
+| **Task 2d** — Authentication queries | **ds0w0** | | Developed cryptographically sound SHA-256 password salting flows to eliminate plain-text vectors. |
+| **Task 3** — PostgreSQL seeding (`seed_postgres.py`) | **ds0w0** | | Configured dynamic tuple loaders using `execute_values` with complete `ON CONFLICT DO NOTHING` logic. |
+| **Task 4** — Neo4j graph design & seeding (`seed_neo4j.py`, `seed.cypher`) | **chocomint408** | | Architected graph database schema containing interchange networks, `METRO_LINK`, and topological costs. |
+| **Task 5** — Neo4j query functions (`graph/queries.py`) | **chocomint408** | **ds0w0** | Written initially by chocomint408. **ds0w0 provided refactoring support** during code integration to ensure precise time-weighted output sorting alignment. |
+| **Task 6** — Optional extension *(RAG Knowledge Base)* | **yikes0000** | **ds0w0** | yikes0000 enriched unstructured JSON manuals. **ds0w0 added dynamic package loader** using `importlib` to bypass internal cyclic dependencies. |
 
-* **對應 JSON/HTML**：`metro_stations.json`、`national_rail_stations.json`、`metro_schedules.json`、`national_rail_schedules.json`、`network_map.html`。
-* **職責描述**：
+### Design Document
 
-1. 研究捷運線、鐵路網的實體連接關係（哪些站跟哪些站相鄰、轉乘時間多少）。
-2. 在 Neo4j 建立 MetroStation 與 NationalRailStation 節點，並拉出 METRO_LINK 和 INTERCHANGE_TO 的關係線。
-3. 確保 AI 助理能回答「最快路線怎麼走？」或「某站封閉時的替代方案」等圖形網絡圖問題。
+| Section | Primary Author | Supporting Member(s) | Notes |
+| --- | --- | --- | --- |
+| Section 1 — ER Diagram | **ds0w0** | | Generated data visualisations using dbdiagram.io formats. |
+| Section 2 — Normalisation Justification | **ds0w0** | | Authored logic breakdown logs ensuring strict 3NF database layout compliance. |
+| Section 3 — Graph Database Design Rationale | **chocomint408** | | Authored architectural rationale behind graph node relationship topologies. |
+| Section 4 — Vector / RAG Design | **yikes0000** | | Documented metadata query formatting and vector distance bounds. |
+| Section 5 — AI Tool Usage Evidence | **ds0w0** | chocomint408, yikes0000 | Consolidated diagnostic chat stubs and repository graph snapshots. |
+| Section 6 — Reflection & Trade-offs | **chocomint408** | ds0w0, yikes0000 | Synthesized cross-system analysis comparing ACID relational models vs network graphs. |
 
 ---
 
-## 👨‍💻 隊員 C
+## 3. Estimated Contribution Percentages
 
-### 主導核心：pgvector 向量資料庫與 RAG 政策庫延伸 (Task 3 + 4 擴充)
+| Member | Estimated % | Brief justification |
+| --- | --- | --- |
+| **張學睿 (ds0w0)** | **40%** | Designed the entire core relational database management layout, parameterised lookup structures, transaction scopes, and automated python table-seeding configurations. Provided critical module dependency fix. |
+| **[組員 B 姓名] (chocomint408)** | **40%** | Spearheaded the full graph database network architecture, Authoring Cypher link parameters, edge weights, and routing lookups. Conducted exhaustive localized application performance verification checks. |
+| **[組員 C 姓名] (yikes0000)** | **20%** | Expanded knowledge corpus files by authoring unstructured rail travel regulation inputs (lost items, penalty guidelines) and configured vector store baseline notes. |
+| **Total** | **100%** | |
 
-* **負責檔案**：
-* train-mock-data/ 裡所有的 Policy JSON 檔案擴充（Task 3）
-* databases/relational/queries.py 或特定功能延伸（Task 4）
-* 負責幫忙串接新工具（Advanced 部分）。
+---
 
-* **對應 JSON**：`booking_rules.json`、`refund_policy.json`、`ticket_types.json`、`travel_policies.json`。
-* **職責描述**：
+## 4. Mid-Project Changes
 
-1. 負責 RAG（檢索增強生成）的政策文本部分。研究如何擴充鐵路的營運規章（如：寵物規定、腳踏車攜帶、遺失物處理等），將它們整理進 JSON。
-2. 配合執行 `seed_vectors.py`，確保向量模型的維度與 .env 的 AI 供應商（Ollama 的 768 或 Gemini 的 3072）完美匹配。
-3. 與隊員 A、B 合作，撰寫 AI Agent 需要呼叫的查詢 Function（`queries.py`），並按照 Advanced 步驟將新功能註冊為 AI 的「工具（Tools）」。
+| Change | Original plan | Revised plan | Reason |
+| --- | --- | --- | --- |
+| **RAG Runtime Dependency Patch** | yikes0000 embeds hardcoded vector providers. | ds0w0 deployed an `importlib` module dynamic injection bridge. | Static circular referencing broke execution pipelines across files, requiring an ad-hoc module import refactor to ensure Gradio frontend stability. |
+
+---
+
+## 5. Team Declaration
+
+We confirm that this work allocation accurately reflects how responsibilities were divided within our team.
+
+| Name | Signature / Typed name | Date |
+| --- | --- | --- |
+| 張學睿 | 張學睿 | 2026-06-03 |
+| [組員 B 姓名] | [組員 B 姓名] | 2026-06-03 |
+| [組員 C 姓名] | [組員 C 姓名] | 2026-06-03 |
