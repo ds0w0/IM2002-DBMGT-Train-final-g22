@@ -170,6 +170,26 @@ CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback(user_id);
 CREATE INDEX IF NOT EXISTS idx_metro_history_user_id ON metro_travel_history(user_id);
 
 -- ============================================================
+--  TASK 6 EXTENSION (ds0w0)
+-- ============================================================
+
+-- # TASK 6 EXTENSION: Promo Code Tables
+CREATE TABLE IF NOT EXISTS promo_codes (
+    code VARCHAR(20) PRIMARY KEY,
+    discount_percent NUMERIC(5,2) NOT NULL CHECK (discount_percent > 0 AND discount_percent <= 100),
+    max_uses INT NOT NULL,
+    current_uses INT DEFAULT 0,
+    expiry_date DATE NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- 塞入幾筆種子折價券資料 (可在 seed_postgres.py 裡面寫，或者直接在這邊測試)
+INSERT INTO promo_codes (code, discount_percent, max_uses, current_uses, expiry_date)
+VALUES ('TRANSIT10', 10.00, 100, 0, '2027-12-31') ON CONFLICT DO NOTHING;
+INSERT INTO promo_codes (code, discount_percent, max_uses, current_uses, expiry_date)
+VALUES ('EARLYBIRD20', 20.00, 50, 0, '2027-12-31') ON CONFLICT DO NOTHING;
+
+-- ============================================================
 --  VECTOR SCHEMA  (RAG / Help Desk) — do not modify
 -- ============================================================
 
