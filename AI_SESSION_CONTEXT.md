@@ -195,6 +195,24 @@ CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback(user_id);
 -- 為 metro_travel_history 的外鍵加上索引
 CREATE INDEX IF NOT EXISTS idx_metro_history_user_id ON metro_travel_history(user_id);
 
+CREATE TABLE IF NOT EXISTS promo_codes (
+    code VARCHAR(20) PRIMARY KEY,
+    discount_percent NUMERIC(5,2) NOT NULL CHECK (discount_percent > 0 AND discount_percent <= 100),
+    max_uses INT NOT NULL,
+    current_uses INT DEFAULT 0,
+    expiry_date DATE NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- 建立 Promo Code 的基本檢索 B-Tree 索引以提升高併發查詢效率
+CREATE INDEX IF NOT EXISTS idx_promo_codes_lookup ON promo_codes(code) WHERE is_active = TRUE;
+
+-- 預先灌入測試用的折價券種子資料
+INSERT INTO promo_codes (code, discount_percent, max_uses, current_uses, expiry_date)
+VALUES ('TRANSIT10', 10.00, 100, 0, '2027-12-31') ON CONFLICT DO NOTHING;
+INSERT INTO promo_codes (code, discount_percent, max_uses, current_uses, expiry_date)
+VALUES ('EARLYBIRD20', 20.00, 50, 0, '2027-12-31') ON CONFLICT DO NOTHING;
+
 ```text
 ## Agreed Graph Schema
 
@@ -259,7 +277,8 @@ def query_station_connections(station_id: str) -> list[dict]: ...
 
 - [x] Schema Design: Split sensitive hashes out into a separate `user_credentials` child table linked via 1:1 foreign keys to achieve Third Normal Form (3NF) and isolate core authentication entities.
 - [x] Relational Indexes: Attached non-clustered explicit indexes (`idx_rail_bookings_user_id`, `idx_feedback_user_id`, `idx_metro_history_user_id`) on foreign keys to optimize subquery join bottlenecks.
-- [x] Concurrency Isolation: Deployed pessimistic row-level locking (`FOR UPDATE`) inside `execute_booking` transactional scripts to safeguard against race conditions under heavy parallel loads.
+- [x] Concurrency Isolation: Deployed pessimistic row-level locking (`FOR UPDATE`) inside `execute_booking` and `execute_cancellation` transactional scripts to safeguard against race conditions under heavy parallel loads.
+- [x] Extension Concurrency: Implemented a relational Promo Code verification engine with strict transactional pessimistic locking (`FOR UPDATE`) to completely eliminate coupon over-allocation.
 - [x] Module Decoupling: Patched runtime circular imports between langconfig pipelines and query functions via dynamic context modules using `importlib`.
 
 ## Prompts That Worked

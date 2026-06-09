@@ -229,3 +229,122 @@ Because our data layout is spread across three specialized engines, normalisatio
 * **The Relational Storage (PostgreSQL):** Enforces strict mathematical transactional boundaries (3NF) over financial ledgers, ticketing states, and salted user credentials to eliminate anomalies.
 * **The Network Topology Engine (Neo4j):** Replaces complex, multi-join SQL queries with indexed graph nodes and directional relationships (`-[:METRO_LINK]->`). This graph structure shifts the cost of path-finding from expensive runtime relational table scans to fast index-driven pointer traversals.
 * **The Semantic Store Layer (pgvector):** Decouples unstructured corporate customer service policy documents from structured database records. By storing dense mathematical text vectors (`vector(768)`), it enables semantic intent matching that works independently from formal relational primary keys.
+
+## Section 3 — Graph Database Design Rationale
+
+### 3.1 Why Neo4j for the Transit Network?
+
+While PostgreSQL excels at ACID-compliant financial ledgers and strict schema validation, mapping a deeply interconnected transit topology utilizing SQL requires expensive and recursive Common Table Expressions (`WITH RECURSIVE`). As the network scales, relational joins for pathfinding become a severe performance bottleneck.
+
+Neo4j was selected because it treats relationships as first-class citizens. By adopting a **Graph (Network) Model**, we shift the computational cost from read-time recursive scans to index-driven pointer traversals. This architecture allows our AI routing agent to effortlessly compute time-weighted shortest paths and alternative detour routes (e.g., bypassing closed stations) in milliseconds.
+
+### 3.2 Node and Relationship Specifications
+
+We modeled the dual-network system with distinct operational boundaries but unified transfer capabilities:
+
+* **Nodes (Vertices):**
+  * `(m:MetroStation)`: Represents local subway stops. Properties include `station_id` (PK) and `name`.
+  * `(r:RailStation)`: Represents cross-country mainline hubs.
+* **Relationships (Edges):**
+  * `[:METRO_LINK]`: Connects adjacent Metro stations. Contains the `travel_time_min` weight.
+  * `[:RAIL_LINK]`: Connects adjacent Rail stations. Contains the `travel_time_min` weight.
+  * `[:INTERCHANGE_TO]`: The crucial pedestrian transfer gateway connecting co-located Metro and Rail stations, utilizing a `walk_time_min` property to penalize complex system transfers during routing calculations.
+
+### 3.3 Pathfinding Optimization
+
+Initially, our routing algorithms relied on basic Neo4j `shortestPath()` functions, which only evaluated "node hops" rather than actual commute time. We refined our Cypher implementation to utilize **time-weighted Dijkstra algorithms**, aggregating the `travel_time_min` across all edges to ensure the AI assistant always suggests the genuinely fastest route, not just the one with the fewest stops.
+
+---
+
+## Section 4 — Vector / RAG Design
+
+### 4.1 Limitations of Keyword Search
+
+Traditional relational queries (`SELECT * WHERE content ILIKE '%bicycle%'`) fail when users input semantic variations (e.g., "Can I bring my bike?" or "Rules for two-wheelers"). To enable a highly intelligent Help Desk agent, we required a system capable of understanding the *intent* and *meaning* of user prompts.
+
+### 4.2 pgvector Implementation and Configuration
+
+We extended PostgreSQL with the `pgvector` extension to serve as our Retrieval-Augmented Generation (RAG) knowledge base.
+
+* **Storage**: The `policy_documents` table stores unstructured text (e.g., lost property guidelines, penalty fare regulations expanded by our team) alongside their dense spatial representation in the `embedding` column (`VECTOR(768)`).
+* **Retrieval Metric**: We utilize the Cosine Distance operator (`<=>`) supported by a Hierarchical Navigable Small World (`HNSW`) index to rapidly retrieve the top 3 (`VECTOR_TOP_K=3`) most semantically similar documents based on a strict `VECTOR_SIMILARITY_THRESHOLD`.
+
+### 4.3 Architectural Decoupling
+
+To ensure backend Gradio UI stability and prevent Python runtime circular-dependency blocks between the language configuration pipelines and the query logic, we deployed a dynamic module loader (`importlib.import_module("skeleton.llm")`) within `query_travel_policies`. This ensures the semantic embedding functions are initialized securely at runtime.
+
+---
+
+## Section 5 — AI Tool Usage Evidence
+
+Our team utilized AI assistants (Gemini, Copilot, and Cursor) intensively for rapid prototyping, architecture brainstorming, and debugging.
+
+### 5.1 The `AI_SESSION_CONTEXT.md` Team Contract
+
+To prevent AI "hallucinations" (where different AI agents invent conflicting table names or columns), we strictly maintained the `AI_SESSION_CONTEXT.md` file. Before generating any SQL or Python logic, every member primed their AI with the agreed-upon 11 relational schemas and Neo4j node labels. This guaranteed perfectly synchronized syntax across all team branches.
+
+### 5.2 Specific AI Contributions
+
+* **DDL Generation**: We prompted the AI to generate our foundational `schema.sql` with specific instructions to split credentials from user profiles to achieve 3NF compliance and enforce `NUMERIC(10,2)` types for all financial columns.
+* **Complex Bug Resolution**: When facing race conditions during high-concurrency ticket booking (`execute_booking`), we utilized AI to refactor our Python `psycopg2` logic, injecting pessimistic `FOR UPDATE` row-level locks and explicit `conn.autocommit = False` transaction boundaries.
+
+---
+
+## Section 6 — Reflection & Trade-offs
+
+Building a Polyglot Persistence architecture (Relational + Graph + Vector) exposed our team to real-world system engineering trade-offs.
+
+### 6.1 The Power of Specialized Engines
+
+Using the right tool for the job provided immense benefits. Neo4j made recursive pathfinding trivial, `pgvector` made our chatbot highly conversational, and PostgreSQL provided ironclad ACID guarantees for payments and bookings.
+
+### 6.2 The Cost of Distributed Complexity
+
+The primary trade-off was **synchronization overhead**. If a physical train station is added to the system, it must be inserted into PostgreSQL (for billing and schedules) and concurrently seeded into Neo4j (for routing). Managing distributed transactions across multiple database paradigms is inherently complex. We mitigated this by keeping all financial and state-changing write operations strictly confined to PostgreSQL, treating Neo4j strictly as a read-optimized routing engine.
+
+## Section 7 — Promo Code Subsystem (Task 6 Bonus)
+
+### Motivation
+
+Adding a promotional code subsystem provides significant commercial value to TransitFlow. It enables the operator to run targeted marketing campaigns and seasonal discounts while safely enforcing strict redemption limits (maximum uses and expiry dates) under high-concurrency booking environments.
+
+### Database Changes
+
+We introduced a new `promo_codes` table to track discount configurations alongside an atomic usage counter, complemented by a specific B-Tree index for active codes.
+
+```sql
+CREATE TABLE IF NOT EXISTS promo_codes (
+    code VARCHAR(20) PRIMARY KEY,
+    discount_percent NUMERIC(5,2) NOT NULL CHECK (discount_percent > 0 AND discount_percent <= 100),
+    max_uses INT NOT NULL,
+    current_uses INT DEFAULT 0,
+    expiry_date DATE NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+CREATE INDEX IF NOT EXISTS idx_promo_codes_lookup ON promo_codes(code) WHERE is_active = TRUE;
+
+```
+
+### Example Queries
+
+To validate a code during booking, we use a pessimistic lock (`FOR UPDATE`) to prevent race conditions when multiple users try to claim the last available voucher:
+
+```sql
+SELECT code, discount_percent, max_uses, current_uses, expiry_date 
+FROM promo_codes 
+WHERE code = 'TRANSIT10' AND is_active = TRUE 
+FOR UPDATE;
+
+```
+
+**Expected Output:**
+`[{"code": "TRANSIT10", "discount_percent": 10.00, "max_uses": 100, "current_uses": 0, "expiry_date": "2027-12-31"}]`
+
+### Testing Evidence
+
+* **Promo Code Validation**: Executing `query_validate_promo_code('TRANSIT10')` returns a JSON record containing `discount_percent: 10.00` and `is_active: True`.
+* **Concurrency Locking Test**: Multiple simulated booking requests targeting the same promotion bucket (`current_uses < max_uses`) successfully locked the row for update, ensuring `current_uses` increments linearly without race condition overwrites (verified via transaction trace logs).
+
+```markdown
+
+---

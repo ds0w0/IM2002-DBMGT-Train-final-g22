@@ -1,3 +1,4 @@
+# TASK 6 EXTENSION: Promo Code & Discount Database Subsystem (ds0w0)
 """
 TransitFlow — PostgreSQL / Relational Database Layer
 =====================================================
@@ -803,7 +804,7 @@ def query_travel_policies(query: str) -> list[dict]:
         for row in results
     ]
 
-# TASK 6 EXTENSION: Promo Code and Dynamic Discounts System (ds0w0)
+# TASK 6 EXTENSION: Promo Code and Dynamic Discounts Subsystem (ds0w0)
 
 def query_validate_promo_code(code: str) -> Optional[dict]:
     """
