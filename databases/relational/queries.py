@@ -7,6 +7,8 @@ TWO ROLES ARE SERVED HERE:
   1. Relational  → dual-network transit (metro + national rail),
                    availability, fares, bookings, seat selection
   2. Vector      → policy document similarity search (pgvector)
+
+# TASK 6 EXTENSION: Promo Code Subsystem (ds0w0)
 """
 
 from __future__ import annotations

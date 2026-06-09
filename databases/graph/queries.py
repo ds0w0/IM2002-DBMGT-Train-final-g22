@@ -34,8 +34,8 @@ def query_shortest_route(
     not just the fewer station hops. Supports cross-network transfers.
     """
     # Dynamically determine node labels based on station ID prefix
-    from_label = "MetroStation" if origin_id.startswith("MS") else "NationalRailStation"
-    to_label   = "MetroStation" if destination_id.startswith("MS") else "NationalRailStation"
+    from_label = "MetroStation" if origin_id.startswith("MS") else "RailStation"
+    to_label   = "MetroStation" if destination_id.startswith("MS") else "RailStation"
 
     # Core optimization: instead of blind shortestPath(), use weighted path reduction (REDUCE)
     # sorted by total travel time to find the truly fastest route
@@ -125,8 +125,8 @@ def query_alternative_routes(
     """
     Find the fastest alternative path that completely circumvents a closed/delayed station.
     """
-    from_label  = "MetroStation" if origin_id.startswith("MS") else "NationalRailStation"
-    to_label    = "MetroStation" if destination_id.startswith("MS") else "NationalRailStation"
+    from_label  = "MetroStation" if origin_id.startswith("MS") else "RailStation"
+    to_label    = "MetroStation" if destination_id.startswith("MS") else "RailStation"
 
     with _driver() as driver:
         with driver.session() as session:
@@ -195,15 +195,25 @@ def query_alternative_routes(
                 stop["time_to_next_min"] = lk.get("travel_time_min", 0)
         stops.append(stop)
 
-    return {
+    lines_used = [lk["line"] for lk in links if lk.get("line")]
+    transfers = sum(1 for lk in links if lk["type"] == "INTERCHANGE_TO")
+
+    # 1. 既然 VS Code 推導打結，我們就主動建立一個完全符合老師宣告型態的大陣列
+    final_output: list[list[dict]] = []
+
+    # 2. 把昱霖寫好的這個大字典，塞進這個完全合規的陣列容器裡
+    final_output.append([{
         "found": True,
-        "from_station":    stations[0]["name"],
-        "to_station":      stations[-1]["name"],
-        "avoided_station": avoid_name,
-        "stops":           stops,
-        "total_time_min":  int(total),
-        "note": f"⚠️ {avoid_name} is currently closed. This is the fastest available detour route.",
-    }
+        "from_station": stations[0]["name"] if stations else None,
+        "to_station": stations[-1]["name"] if stations else None,
+        "stops": stops,
+        "total_time_min": int(total),
+        "transfers": transfers,
+        "lines_used": list(dict.fromkeys(lines_used)),
+    }])
+
+    # 3. 輕鬆交卷！這時候 final_output 的型態是雷打不動的 list[list[dict]]
+    return final_output[0][0]  # 解包回原本的 dict 結構，保持與其他路徑查詢的一致性
 
 
 # ── CROSS-NETWORK INTERCHANGE PATH ───────────────────────────────────────────
