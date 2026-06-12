@@ -4,6 +4,7 @@
 
 ### 1.1 Conceptual ERD Topology
 
+![TransitFlow ERD](erd.png)
 Our hybrid data engineering strategy balances relational constraints, graph topological traversal speed, and dense vector similarity search requirements. The cross-system persistent layout is organized around 12 core tables and entity structures, interconnected across PostgreSQL, Neo4j, and pgvector layers.
 
 ```text

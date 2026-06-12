@@ -1,4 +1,4 @@
--- # TASK 6 EXTENSION: Promo Code & Discount Database Subsystem (ds0w0)
+-- TASK 6 EXTENSION: Promo Code & Discount Database Subsystem
 -- ============================================================
 --  TransitFlow PostgreSQL Schema
 --  Seed data is loaded separately by: python skeleton/seed_postgres.py
