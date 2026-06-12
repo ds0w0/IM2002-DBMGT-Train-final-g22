@@ -24,7 +24,7 @@
 | **Task 3** — PostgreSQL seeding (`seed_postgres.py`) | **ds0w0** | **chocomint408**, yikes0000 | Configured dynamic tuple loaders using `execute_values` with complete `ON CONFLICT DO NOTHING` logic. Successfully seeded all 11 core tables (stations, schedules, user credentials, feedback, and metro history). |
 | **Task 4** — Neo4j graph design & seeding (`seed_neo4j.py`, `seed.cypher`) | **chocomint408** | | Architected graph database schema containing interchange networks, `METRO_LINK`, and topological costs. |
 | **Task 5** — Neo4j query functions (`graph/queries.py`) | **chocomint408** | **ds0w0** | Written initially by chocomint408. **ds0w0 provided refactoring support** during code integration to ensure precise time-weighted output sorting alignment. |
-| **Task 6** — Optional extension *(Trip History Panel + RAG Knowledge Base)* | **yikes0000** | chocomint408, ds0w0 | yikes0000 extended `train-mock-data/travel_policies.json` with 4 new top-level policy sections (`children_and_family`, `passenger_conduct`, `season_tickets_and_passes`, `special_services`), fixed JSON structure, and verified all 21 policy documents embed correctly into pgvector via `seed_vectors.py`. Also implemented the Trip History Panel in `skeleton/ui.py` — a new 🎫 My Bookings tab with two Dataframe tables querying `query_user_bookings()` directly from PostgreSQL, bypassing the LLM entirely for a structured, persistent booking history view. Created `TASK6.md` at repo root documenting all modified files and functions. |
+| **Task 6** — Optional extension *(Promo Codes, Trip History & RAG)* | **ds0w0**, **yikes0000** | chocomint408 | ds0w0 engineered a highly concurrent Promo Code relational database subsystem using strict atomic locks. yikes0000 extended `train-mock-data/travel_policies.json` with 4 new top-level policy sections (`children_and_family`, `passenger_conduct`, `season_tickets_and_passes`, `special_services`), fixed JSON structure, and verified all 21 policy documents embed correctly into pgvector via `seed_vectors.py`. yikes0000 also implemented the Trip History Panel in `skeleton/ui.py` — added `load_trip_history()` function and a 🎫 My Bookings tab with two `gr.Dataframe` tables querying `query_user_bookings()` directly from PostgreSQL. Created `TASK6.md` and `screenshots/` with testing evidence. |
 
 ### Design Document
 
@@ -44,9 +44,9 @@
 
 | Member | Estimated % | Brief justification |
 | --- | --- | --- |
-| **張學睿 (ds0w0)** | **37.5%** | Designed the entire core relational database management layout, parameterised lookup structures, transaction scopes, and automated python table-seeding configurations. Provided critical module dependency fix. |
-| **陸昱霖 (chocomint408)** | **37.5%** | Spearheaded the full graph database network architecture, authoring Cypher link parameters, edge weights, and routing lookups. Conducted exhaustive localized application performance verification checks. |
-| **王宇崴 (yikes0000)** | **25%** | Extended RAG knowledge base with 4 new policy sections (`children_and_family`, `passenger_conduct`, `season_tickets_and_passes`, `special_services`) and verified end-to-end vector seeding (21 documents total). Implemented Task 6 Trip History Panel UI extension, enabling users to view past national rail bookings and metro trips in a structured table format queried directly from PostgreSQL. Authored Design Document Section 4 and Section 7. |
+| **張學睿 (ds0w0)** | **35%** | Designed the entire core relational database management layout, parameterised lookup structures, transaction scopes, and automated python table-seeding configurations. Provided critical module dependency fix. Co-authored Task 6 Promo Code subsystem. |
+| **陸昱霖 (chocomint408)** | **35%** | Spearheaded the full graph database network architecture, authoring Cypher link parameters, edge weights, and routing lookups. Conducted exhaustive localized application performance verification checks. |
+| **王宇崴 (yikes0000)** | **30%** | Extended RAG knowledge base with 4 new policy sections and verified end-to-end vector seeding (21 documents total). Implemented Task 6 Trip History Panel (`load_trip_history()` in `skeleton/ui.py`), querying `national_rail_bookings` and `metro_travel_history` directly from PostgreSQL. Authored Design Document Section 4 and Section 7. Created `TASK6.md` and testing screenshots. |
 | **Total** | **100%** | |
 
 ---
@@ -56,7 +56,7 @@
 | Change | Original plan | Revised plan | Reason |
 | --- | --- | --- | --- |
 | **RAG Runtime Dependency Patch** | yikes0000 embeds hardcoded vector providers. | ds0w0 deployed an `importlib` module dynamic injection bridge. | Static circular dependencies blocked the execution pipeline between language configurations and database query logic during cross-system integration, requiring ds0w0 to deploy a dynamic import patch. |
-| **Task 6 Scope Expansion** | yikes0000 handles RAG knowledge base only. | yikes0000 additionally implemented Trip History Panel UI extension. | The panel adds a meaningful new interaction mode (structured booking table) that the chat-only interface cannot replicate, qualifying for full Task 6 database extension marks rather than UI-only cap. |
+| **Task 6 Scope Expansion** | yikes0000 handles RAG knowledge base only. | yikes0000 additionally implemented Trip History Panel UI extension and expanded policy documents from 15 to 21. | The panel adds a meaningful new interaction mode (structured booking table) that the chat-only interface cannot replicate, qualifying for full Task 6 database extension marks rather than UI-only cap. |
 
 ---
 
