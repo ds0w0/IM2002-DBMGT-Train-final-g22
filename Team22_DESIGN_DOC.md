@@ -203,15 +203,152 @@ This is a fundamental property of vector databases: all vectors in a collection 
 -->
 
 ---
-
-## Section 7 — Task 6 Extension
+## Section 7 — Task 6 Extension: Trip History Panel
 
 > **Owner: yikes0000**
 
-<!-- To be filled in after Trip History Panel testing is complete -->
-<!-- Required:
-  - Motivation: why this extension adds value
-  - Database changes: schema snippets or queries used
-  - Example queries: SQL shown with expected output
-  - Testing evidence: screenshots or query output
--->
+---
+
+### 7.1 Motivation
+
+The original TransitFlow UI is entirely chat-based. All data — schedules, fares, bookings, and policies — is returned as plain text inside the conversation window. This creates two problems for booking history specifically:
+
+1. **Not persistent:** A user asking "show my bookings" receives a one-time text reply that scrolls away as the conversation continues. There is no way to refer back to past bookings without asking again.
+2. **Not scannable:** A list of bookings formatted as a chat reply is harder to read than a table with clearly labelled columns.
+
+The **My Bookings** tab solves both problems by providing a dedicated, persistent, tabular view of the user's booking history queried directly from PostgreSQL. It adds a genuinely new interaction mode that the chat interface cannot replicate — the user can check their bookings at any time without typing a message or involving the LLM at all.
+
+This extension qualifies for the full database extension bonus (not UI-only) because it queries live data from two PostgreSQL tables (`national_rail_bookings` and `metro_travel_history`) via the existing `query_user_bookings()` function.
+
+---
+
+### 7.2 Files Modified
+
+| File | Change |
+|------|--------|
+| `skeleton/ui.py` | Added `load_trip_history()` function and `🎫 My Bookings` tab with two `gr.Dataframe` tables and a Refresh button |
+| `train-mock-data/travel_policies.json` | Extended with 4 new top-level policy sections: `children_and_family`, `passenger_conduct`, `season_tickets_and_passes`, `special_services`. Fixed JSON structure (moved `penalty_fares` and `group_bookings` out of `planned_disruptions` to top-level). Total policy documents increased from 15 to 21. |
+
+---
+
+### 7.3 New Function: `load_trip_history()`
+
+Added to `skeleton/ui.py`. Calls `query_user_bookings()` from `databases/relational/queries.py` and formats the results into two table-ready lists.
+
+```python
+def load_trip_history(current_user: str):
+    """
+    Fetch the logged-in user's booking history from PostgreSQL and format it
+    as two separate Gradio Dataframe-compatible lists (national rail + metro).
+    """
+    if not current_user:
+        return ([], [], gr.update(value="⚠️ Please log in to view your booking history.", visible=True))
+
+    bookings = query_user_bookings(current_user)
+
+    rail_rows = []
+    for b in bookings.get("national_rail", []):
+        rail_rows.append([
+            b.get("booking_id", ""),
+            b.get("origin_station_id", ""),
+            b.get("destination_station_id", ""),
+            b.get("travel_date", ""),
+            b.get("departure_time", ""),
+            b.get("fare_class", ""),
+            b.get("seat_id", ""),
+            b.get("status", ""),
+            f"${b.get('amount_usd', 0):.2f}",
+        ])
+    ...
+```
+
+---
+
+### 7.4 Database Tables Queried
+
+The extension queries two existing PostgreSQL tables via `query_user_bookings()`:
+
+**`national_rail_bookings`**
+```sql
+SELECT booking_id, schedule_id, origin_station_id, destination_station_id,
+       travel_date, departure_time, ticket_type, fare_class, coach, seat_id,
+       stops_travelled, amount_usd, status, booked_at, travelled_at
+FROM national_rail_bookings
+WHERE user_id = %s
+ORDER BY booked_at DESC;
+```
+
+**`metro_travel_history`**
+```sql
+SELECT trip_id, user_id, schedule_id, origin_station_id, destination_station_id,
+       tap_in_at, tap_out_at, fare_usd, status
+FROM metro_travel_history
+WHERE user_id = %s
+ORDER BY tap_in_at DESC;
+```
+
+No new tables or schema changes were required — the extension surfaces data that already exists in the relational database.
+
+---
+
+### 7.5 Example Query and Output
+
+Calling `query_user_bookings('weiwng613@gmail.com')` for a user with one confirmed national rail booking returns:
+
+```python
+{
+    "national_rail": [
+        {
+            "booking_id": "BK-UOL2KV",
+            "origin_station_id": "NR01",
+            "destination_station_id": "NR05",
+            "travel_date": "2025-06-15",
+            "departure_time": "08:00",
+            "fare_class": "standard",
+            "seat_id": "B01A",
+            "status": "confirmed",
+            "amount_usd": 15.0
+        }
+    ],
+    "metro": []
+}
+```
+
+This is displayed in the UI as a formatted table row under **National Rail Bookings**.
+
+---
+
+### 7.6 Testing Evidence
+
+**Figure 1 — Unauthenticated state:** When a user clicks Refresh without logging in, the panel shows a warning message and both tables remain empty.
+
+![Unauthenticated state — warning message shown](screenshots/task6_unauthenticated.png)
+
+**Figure 2 — Authenticated state with booking data:** After logging in as `wei wang` and clicking Refresh, the panel shows 1 national rail booking (`BK-UOL2KV`, NR01 → NR05, 2025-06-15, standard class, seat B01A, $15.00, confirmed).
+
+![Authenticated state — booking BK-UOL2KV displayed](screenshots/task6_authenticated.png)
+
+> **Note:** Screenshots above show the live running application querying PostgreSQL directly. The booking was created via `execute_booking()` and is confirmed present in the `national_rail_bookings` table.
+
+---
+
+### 7.7 RAG Knowledge Base Extension
+
+In addition to the UI panel, the policy knowledge base was expanded by extending `train-mock-data/travel_policies.json` with 4 new sections:
+
+| New Section | Content |
+|-------------|---------|
+| `children_and_family` | Children's fares (under 5 free, ages 5–15 half fare), pushchair rules, family coach |
+| `passenger_conduct` | General behaviour, photography, busking, intoxication policy, mobile phone use |
+| `season_tickets_and_passes` | Metro day pass ($8.50), weekly pass ($32.00), national rail monthly pass ($180.00), combined pass ($55.00) |
+| `special_services` | Night services (Fri/Sat only on Lines 1–3), express surcharge ($3.50), charter services |
+
+This increased the total embedded policy documents from **15 to 21**, allowing the RAG assistant to answer questions about children's fares, night services, season passes, and passenger conduct rules that were previously outside its knowledge base.
+
+**Example — before extension:**
+> Q: "Is there a night service on Friday?"
+> A: No information found.
+
+**Example — after extension:**
+> Q: "Is there a night service on Friday?"
+> A: Yes — night metro services run on Friday and Saturday nights only, every 30 minutes between 00:00 and 05:00 on Lines 1, 2, and 3.
