@@ -44,8 +44,8 @@
 
 | Member | Estimated % | Brief justification |
 | --- | --- | --- |
-| **張學睿 (ds0w0)** | **35%** | Designed the entire core relational database management layout, parameterised lookup structures, transaction scopes, and automated python table-seeding configurations. Provided critical module dependency fix. Co-authored Task 6 Promo Code subsystem. |
-| **陸昱霖 (chocomint408)** | **35%** | Spearheaded the full graph database network architecture, authoring Cypher link parameters, edge weights, and routing lookups. Conducted exhaustive localized application performance verification checks. |
+| **張學睿 (ds0w0)** | **37.5%** | Designed the entire core relational database management layout, parameterised lookup structures, transaction scopes, and automated python table-seeding configurations. Provided critical module dependency fix. Co-authored Task 6 Promo Code subsystem and added the crowdedness/frequent flyer logic. |
+| **陸昱霖 (chocomint408)** | **32.5%** | Spearheaded the full graph database network architecture, authoring Cypher link parameters, edge weights, and routing lookups. Conducted exhaustive localized application performance verification checks. |
 | **王宇崴 (yikes0000)** | **30%** | Extended RAG knowledge base with 4 new policy sections and verified end-to-end vector seeding (21 documents total). Implemented Task 6 Trip History Panel (`load_trip_history()` in `skeleton/ui.py`), querying `national_rail_bookings` and `metro_travel_history` directly from PostgreSQL. Authored Design Document Section 4 and Section 7. Created `TASK6.md` and testing screenshots. |
 | **Total** | **100%** | |
 
