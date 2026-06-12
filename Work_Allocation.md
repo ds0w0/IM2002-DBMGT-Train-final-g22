@@ -68,4 +68,4 @@ We confirm that this work allocation accurately reflects how responsibilities we
 | --- | --- | --- |
 | 張學睿 | 張學睿 | 2026-06-03 |
 | 陸昱霖 | 陸昱霖 | 2026-06-03 |
-| [組員 C 姓名] | [組員 C 姓名] | 2026-06-03 |
+| 王宇崴 | 王宇崴| 2026-06-12 |
