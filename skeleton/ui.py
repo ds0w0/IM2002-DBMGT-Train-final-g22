@@ -1,3 +1,7 @@
+# TASK 6 EXTENSION: Added My Bookings tab (Trip History Panel) to surface
+# structured booking data from the database in a persistent, scannable UI.
+# All original chat and auth functionality is preserved unchanged.
+
 """
 TransitFlow — Gradio Web Interface
 ====================================
@@ -20,6 +24,7 @@ from databases.relational.queries import (
     get_user_secret_question,
     verify_secret_answer,
     update_password,
+    query_user_bookings,  # TASK 6 EXTENSION: imported for Trip History Panel
 )
 
 SECRET_QUESTIONS = [
@@ -265,6 +270,75 @@ EXAMPLES = [
 ]
 
 
+# ── TASK 6 EXTENSION: Trip History Panel ──────────────────────────────────────
+# Surfaces the user's past bookings from PostgreSQL in a persistent table view.
+# This interaction cannot be replicated in the chat interface — the chat shows
+# one-off text replies, whereas this panel shows a live, scrollable data table
+# that updates on demand without sending a chat message.
+
+def load_trip_history(current_user: str):
+    """
+    Fetch the logged-in user's booking history from PostgreSQL and format it
+    as two separate Gradio Dataframe-compatible lists (national rail + metro).
+
+    Returns two lists of rows: one for national rail bookings, one for metro.
+    If the user is not logged in, returns empty lists with a status message.
+    """
+    # Guard: user must be logged in to view history
+    if not current_user:
+        return (
+            [],
+            [],
+            gr.update(value="⚠️ Please log in to view your booking history.", visible=True),
+        )
+
+    # Query PostgreSQL for all bookings belonging to this user
+    bookings = query_user_bookings(current_user)
+
+    # Format national rail bookings into table rows
+    # Each row: [Booking ID, From, To, Date, Departure, Class, Seat, Status, Amount]
+    rail_rows = []
+    for b in bookings.get("national_rail", []):
+        rail_rows.append([
+            b.get("booking_id", ""),
+            b.get("origin_station_id", ""),
+            b.get("destination_station_id", ""),
+            b.get("travel_date", ""),
+            b.get("departure_time", ""),
+            b.get("fare_class", ""),
+            b.get("seat_id", ""),
+            b.get("status", ""),
+            f"${b.get('amount_usd', 0):.2f}",
+        ])
+
+    # Format metro bookings into table rows
+    # Each row: [Trip ID, From, To, Tapped In, Tapped Out, Status, Fare]
+    metro_rows = []
+    for m in bookings.get("metro", []):
+        metro_rows.append([
+            m.get("trip_id", ""),
+            m.get("origin_station_id", ""),
+            m.get("destination_station_id", ""),
+            m.get("tap_in_at", ""),
+            m.get("tap_out_at", "") or "—",
+            m.get("status", ""),
+            f"${m.get('fare_usd', 0):.2f}",
+        ])
+
+    # Build a status message showing booking counts
+    total = len(rail_rows) + len(metro_rows)
+    if total == 0:
+        status_msg = "No bookings found for your account."
+    else:
+        status_msg = f"Found **{len(rail_rows)}** national rail booking(s) and **{len(metro_rows)}** metro trip(s)."
+
+    return (
+        rail_rows,
+        metro_rows,
+        gr.update(value=status_msg, visible=True),
+    )
+
+
 # ── Build UI ───────────────────────────────────────────────────────────────────
 
 with gr.Blocks(title="TransitFlow") as demo:
@@ -325,52 +399,96 @@ with gr.Blocks(title="TransitFlow") as demo:
         forgot_msg               = gr.Markdown("")
         forgot_back_btn          = gr.Button("Back to login", size="sm")
 
-    # ── Main chat area ────────────────────────────────────────────────
-    with gr.Row():
+    # ── TASK 6 EXTENSION: Tabs wrap the main content area ─────────────
+    # The original chat UI is placed in Tab 1 (unchanged).
+    # Tab 2 is the new Trip History Panel that queries PostgreSQL directly.
+    with gr.Tabs():
 
-        # ── Left: chat ────────────────────────────────────────────────
-        with gr.Column(scale=3):
-            chatbot = gr.Chatbot(label="TransitFlow Assistant", height=420)
-
+        # ── Tab 1: Assistant (original chat UI, unchanged) ────────────
+        with gr.Tab("🤖 Assistant"):
             with gr.Row():
-                msg = gr.Textbox(
-                    placeholder="Ask e.g. 'Are there seats from London to Bristol?'",
-                    show_label=False,
-                    scale=4,
-                )
-                send_btn = gr.Button("Send", variant="primary", scale=1)
 
-            with gr.Row():
-                clear_btn    = gr.Button("🗑️ Clear conversation", size="sm")
-                debug_toggle = gr.Checkbox(label="🔍 Show database debug panel", value=True)
+                # ── Left: chat ────────────────────────────────────────
+                with gr.Column(scale=3):
+                    chatbot = gr.Chatbot(label="TransitFlow Assistant", height=420)
 
-            # Debug panel — hidden until checkbox is ticked and a message is sent
-            debug_panel = gr.Markdown(
-                value="",
-                visible=False,
+                    with gr.Row():
+                        msg = gr.Textbox(
+                            placeholder="Ask e.g. 'Are there seats from London to Bristol?'",
+                            show_label=False,
+                            scale=4,
+                        )
+                        send_btn = gr.Button("Send", variant="primary", scale=1)
+
+                    with gr.Row():
+                        clear_btn    = gr.Button("🗑️ Clear conversation", size="sm")
+                        debug_toggle = gr.Checkbox(label="🔍 Show database debug panel", value=True)
+
+                    # Debug panel — hidden until checkbox is ticked and a message is sent
+                    debug_panel = gr.Markdown(
+                        value="",
+                        visible=False,
+                    )
+
+                # ── Right: sidebar ────────────────────────────────────
+                with gr.Column(scale=1):
+
+                    gr.Markdown("### 🤖 LLM Provider")
+                    chat_model_dropdown = gr.Dropdown(
+                        choices=get_chat_model_choices(),
+                        value=get_initial_chat_model_value(),
+                        label="Chat model",
+                        info="Local Ollama models run fully locally. Gemini uses your API key.",
+                    )
+                    provider_status = gr.Markdown(value="**Active:** llama3.2:1b")
+                    ollama_status   = gr.Markdown(value=get_ollama_status())
+
+                    gr.Markdown("---")
+
+                    gr.Markdown("### 💡 Try these examples")
+                    for example in EXAMPLES:
+                        gr.Button(example, size="sm").click(
+                            fn=lambda e=example: e,
+                            outputs=msg,
+                        )
+
+        # ── Tab 2: TASK 6 EXTENSION — Trip History Panel ──────────────
+        # Queries query_user_bookings() from databases/relational/queries.py
+        # and displays the results in two formatted tables (rail + metro).
+        # This surfaces data the chat interface cannot show in a scannable,
+        # persistent, tabular format — a genuinely new interaction mode.
+        with gr.Tab("🎫 My Bookings"):
+            gr.Markdown("""
+### Your Booking History
+View all your past national rail bookings and metro trips.
+Log in first, then click **Refresh** to load your history.
+            """)
+
+            # Refresh button — triggers a DB query for the current user
+            refresh_btn = gr.Button("🔄 Refresh Bookings", variant="primary")
+
+            # Status message (e.g. "Found 3 bookings" or "Please log in")
+            history_status = gr.Markdown("", visible=False)
+
+            # National Rail bookings table
+            gr.Markdown("#### 🚆 National Rail Bookings")
+            rail_table = gr.Dataframe(
+                headers=["Booking ID", "From", "To", "Date", "Departure", "Class", "Seat", "Status", "Amount"],
+                datatype=["str", "str", "str", "str", "str", "str", "str", "str", "str"],
+                value=[],
+                interactive=False,
+                wrap=True,
             )
 
-        # ── Right: sidebar ────────────────────────────────────────────
-        with gr.Column(scale=1):
-
-            gr.Markdown("### 🤖 LLM Provider")
-            chat_model_dropdown = gr.Dropdown(
-                choices=get_chat_model_choices(),
-                value=get_initial_chat_model_value(),
-                label="Chat model",
-                info="Local Ollama models run fully locally. Gemini uses your API key.",
+            # Metro travel history table
+            gr.Markdown("#### 🚇 Metro Trips")
+            metro_table = gr.Dataframe(
+                headers=["Trip ID", "From", "To", "Tapped In", "Tapped Out", "Status", "Fare"],
+                datatype=["str", "str", "str", "str", "str", "str", "str"],
+                value=[],
+                interactive=False,
+                wrap=True,
             )
-            provider_status = gr.Markdown(value="**Active:** llama3.2:1b")
-            ollama_status   = gr.Markdown(value=get_ollama_status())
-
-            gr.Markdown("---")
-
-            gr.Markdown("### 💡 Try these examples")
-            for example in EXAMPLES:
-                gr.Button(example, size="sm").click(
-                    fn=lambda e=example: e,
-                    outputs=msg,
-                )
 
     # ── Event wiring ──────────────────────────────────────────────────
 
@@ -489,6 +607,14 @@ with gr.Blocks(title="TransitFlow") as demo:
         fn=forgot_reset_password,
         inputs=[forgot_email_in, forgot_answer_in, forgot_new_password_in],
         outputs=[forgot_msg],
+    )
+
+    # TASK 6 EXTENSION: Refresh button wiring for Trip History Panel
+    # Reads current_user_state and queries PostgreSQL via query_user_bookings()
+    refresh_btn.click(
+        fn=load_trip_history,
+        inputs=[current_user_state],
+        outputs=[rail_table, metro_table, history_status],
     )
 
 
