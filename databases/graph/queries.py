@@ -37,17 +37,17 @@ def query_shortest_route(
     from_label = "MetroStation" if origin_id.startswith("MS") else "RailStation"
     to_label   = "MetroStation" if destination_id.startswith("MS") else "RailStation"
 
-    # Core optimization: instead of blind shortestPath(), use weighted path reduction (REDUCE)
-    # sorted by total travel time to find the truly fastest route
+    # Use shortestPath() to avoid enumerating all possible paths (which causes OOM).
+    # shortestPath finds the path with fewest hops efficiently without expanding all routes.
     cypher_sql = f"""
         MATCH (start:{from_label} {{station_id: $from_id}}),
               (end:{to_label} {{station_id: $to_id}})
-        MATCH p = (start)-[:METRO_LINK|RAIL_LINK|INTERCHANGE_TO*1..15]-(end)
-        WITH p, 
-             nodes(p) AS ns, 
+        MATCH p = shortestPath((start)-[:METRO_LINK|RAIL_LINK|INTERCHANGE_TO*1..20]-(end))
+        WITH p,
+             nodes(p) AS ns,
              relationships(p) AS rels,
              reduce(t = 0, r IN relationships(p) | t + coalesce(r.travel_time_min, r.walk_time_min, 0)) AS total_time
-        RETURN 
+        RETURN
             [n IN ns | {{
                 station_id: n.station_id,
                 name: n.name,
@@ -137,16 +137,15 @@ def query_alternative_routes(
             ).single()
             avoid_name = avoid_info["name"] if avoid_info else avoid_station_id
 
-            # Core optimization: use NONE keyword to exclude the avoided station
-            # during full path generation, then sort by total time cost
+            # Use shortestPath with WHERE filter to avoid OOM from full path enumeration
             cypher_sql = f"""
                 MATCH (start:{from_label} {{station_id: $from_id}}),
                       (end:{to_label} {{station_id: $to_id}})
-                MATCH p = (start)-[:METRO_LINK|RAIL_LINK|INTERCHANGE_TO*1..15]-(end)
+                MATCH p = shortestPath((start)-[:METRO_LINK|RAIL_LINK|INTERCHANGE_TO*1..20]-(end))
                 WHERE NONE(n IN nodes(p) WHERE n.station_id = $avoid_id)
-                WITH p, 
+                WITH p,
                      reduce(t = 0, r IN relationships(p) | t + coalesce(r.travel_time_min, r.walk_time_min, 0)) AS total_time
-                RETURN 
+                RETURN
                     [n IN nodes(p) | {{
                         station_id: n.station_id,
                         name: n.name,
