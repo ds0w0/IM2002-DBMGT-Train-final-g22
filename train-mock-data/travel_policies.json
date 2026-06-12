@@ -162,6 +162,20 @@
       "delay_threshold_for_notification": "Passengers are notified via app push notification if their booked service is delayed by 15 minutes or more.",
       "alternative_routing": "When a service is severely delayed or cancelled, passengers may travel on the next available service on the same route at no extra charge.",
       "compensation": "Delay compensation is governed by policy RF005."
-    }
+    },
+    "penalty_fares": {
+    "description": "Passengers must travel with a valid ticket for their entire journey. Failure to produce a valid ticket upon request will result in a penalty fare.",
+    "metro_penalty": "A flat penalty fare of $50 is applied for travelling without a valid ticket on the metro network.",
+    "national_rail_penalty": "The penalty fare on national rail services is $100 or twice the full single fare applicable to the journey made, whichever is greater.",
+    "appeals": "Penalty fares can be appealed within 21 days via the official website. Appeals must include evidence of ticket purchase or a valid reason for inability to purchase."
+  },
+  "group_bookings": {
+    "availability": "national_rail_only",
+    "minimum_passengers": 10,
+    "discount_rate": "25% off standard class fares",
+    "conditions": "All members of the group must travel together on the same designated train. Group bookings cannot be modified or refunded within 7 days of travel.",
+    "how_to_book": "Group bookings must be made at least 14 days in advance through the group travel portal on the website or by calling customer service."
+  }
+
   }
 }
