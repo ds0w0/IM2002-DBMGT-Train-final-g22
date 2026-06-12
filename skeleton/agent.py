@@ -48,6 +48,7 @@ from databases.relational.queries import (
     execute_booking,
     execute_cancellation,
     query_policy_vector_search,
+    execute_booking_with_promo,
 )
 from databases.graph.queries import (
     query_shortest_route,
@@ -200,7 +201,7 @@ TOOLS = [
         "description": (
             "Create a national rail booking for the logged-in user. "
             "REQUIRES LOGIN. Only call after the user has explicitly confirmed all booking details. "
-            "Do NOT call this speculatively."
+            "Do NOT call this speculatively. If the user provides a promo code, pass it here."
         ),
         "parameters": {
             "schedule_id":            {"type": "string", "description": "e.g. NR_SCH01"},
@@ -210,6 +211,7 @@ TOOLS = [
             "fare_class":             {"type": "string", "description": "standard or first"},
             "seat_id":                {"type": "string", "description": "Specific seat ID (e.g. B05) or 'any' for auto-assign"},
             "ticket_type":            {"type": "string", "description": "single or return (default single)"},
+            "promo_code":             {"type": "string", "description": "Optional discount code (e.g. TRANSIT10)"}, # 🌟 新增這行
         },
         "required": ["schedule_id", "origin_station_id", "destination_station_id", "travel_date", "fare_class", "seat_id"],
     },
@@ -371,16 +373,32 @@ def _execute_tool(
             profile = query_user_profile(current_user_email)
             if not profile:
                 return json.dumps({"error": "User profile not found."})
-            ok, data = execute_booking(
-                user_id=profile["user_id"],
-                schedule_id=params["schedule_id"],
-                origin_station_id=params["origin_station_id"],
-                destination_station_id=params["destination_station_id"],
-                travel_date=params["travel_date"],
-                fare_class=params["fare_class"],
-                seat_id=params["seat_id"],
-                ticket_type=params.get("ticket_type", "single"),
-            )
+                
+            # 🌟 判斷 AI 是否有傳入折價券
+            promo = params.get("promo_code")
+            if promo:
+                ok, data = execute_booking_with_promo(
+                    user_id=profile["user_id"],
+                    schedule_id=params["schedule_id"],
+                    origin_station_id=params["origin_station_id"],
+                    destination_station_id=params["destination_station_id"],
+                    travel_date=params["travel_date"],
+                    fare_class=params["fare_class"],
+                    seat_id=params["seat_id"],
+                    promo_code=promo,
+                    ticket_type=params.get("ticket_type", "single"),
+                )
+            else:
+                ok, data = execute_booking(
+                    user_id=profile["user_id"],
+                    schedule_id=params["schedule_id"],
+                    origin_station_id=params["origin_station_id"],
+                    destination_station_id=params["destination_station_id"],
+                    travel_date=params["travel_date"],
+                    fare_class=params["fare_class"],
+                    seat_id=params["seat_id"],
+                    ticket_type=params.get("ticket_type", "single"),
+                )
             result = data if ok else {"error": data}
 
         elif tool_name == "cancel_booking":

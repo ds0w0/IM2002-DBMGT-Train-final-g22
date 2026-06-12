@@ -862,8 +862,18 @@ def execute_booking_with_promo(
     """
     # TASK 6 EXTENSION:
     在嚴格的 SQL 事務控制下，驗證折價券、計算打折後的票價、插入訂單、扣減折價券可用次數。
-    利用悲觀鎖防止折價券在最後一刻被其他人搶先用完（Race Condition）。
     """
+    # 🌟 新增防呆：處理 AI 傳入 seat_id="any" 的情況
+    if seat_id.lower() == "any":
+        available = query_available_seats(schedule_id, travel_date, fare_class)
+        if not available:
+            return False, "No available seats left on this schedule for the selected class"
+        selected_seat = available[0]
+        seat_id = selected_seat["seat_id"]
+        coach = selected_seat["coach"]
+    else:
+        coach = "F" if fare_class.lower() == "first" else "B"
+
     conn = psycopg2.connect(PG_DSN)
     conn.autocommit = False  # 啟動 strict ACID 事務
     
@@ -892,13 +902,11 @@ def execute_booking_with_promo(
             except Exception:
                 stops = 3
                 
-            # 呼叫原本的 fare 邏輯取得基礎價格
             fare_res = query_national_rail_fare(schedule_id, fare_class, stops)
             if not fare_res:
                 return False, "無法計算基礎票價"
             
             original_amount = fare_res["total_fare_usd"]
-            # 核心加分商業邏輯：套用折扣
             final_amount = original_amount * (1.0 - (discount / 100.0))
 
             # 3. 檢查座位並劃位鎖定
@@ -927,7 +935,7 @@ def execute_booking_with_promo(
             """
             cur.execute(booking_sql, (
                 booking_id, user_id, schedule_id, origin_station_id, destination_station_id,
-                travel_date, "08:00", ticket_type, fare_class, "B", seat_id,
+                travel_date, "08:00", ticket_type, fare_class, coach, seat_id,
                 stops, final_amount, now_time
             ))
 
