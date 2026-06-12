@@ -1,6 +1,6 @@
 {
-  "version": "1.0",
-  "last_updated": "2024-01-01",
+  "version": "1.1",
+  "last_updated": "2024-06-01",
   "metro": {
     "bicycles": {
       "foldable_bicycles": {
@@ -47,6 +47,12 @@
     "priority_seating": {
       "description": "Seats marked with a yellow priority sign are reserved for elderly passengers (65+), pregnant women, passengers with disabilities, and passengers travelling with young children.",
       "rule": "All other passengers must vacate priority seats immediately when requested."
+    },
+    "accessibility": {
+      "wheelchair_access": "All metro stations are equipped with lifts and ramps. Passengers in wheelchairs may board at any door.",
+      "assisted_boarding": "Station staff are available to assist passengers with boarding. Please approach the station information desk.",
+      "audio_visual_announcements": "All metro trains and stations provide both audio and visual announcements for stops, connections, and service updates.",
+      "tactile_paving": "Tactile guidance paving is installed on all platforms to assist visually impaired passengers."
     },
     "prohibited_items": [
       "Flammable or explosive materials",
@@ -162,6 +168,101 @@
       "delay_threshold_for_notification": "Passengers are notified via app push notification if their booked service is delayed by 15 minutes or more.",
       "alternative_routing": "When a service is severely delayed or cancelled, passengers may travel on the next available service on the same route at no extra charge.",
       "compensation": "Delay compensation is governed by policy RF005."
+    }
+  },
+  "penalty_fares": {
+    "description": "Passengers must travel with a valid ticket for their entire journey. Failure to produce a valid ticket upon request will result in a penalty fare.",
+    "metro_penalty": "A flat penalty fare of $50 is applied for travelling without a valid ticket on the metro network.",
+    "national_rail_penalty": "The penalty fare on national rail services is $100 or twice the full single fare applicable to the journey made, whichever is greater.",
+    "appeals": "Penalty fares can be appealed within 21 days via the official website. Appeals must include evidence of ticket purchase or a valid reason for inability to purchase."
+  },
+  "group_bookings": {
+    "availability": "national_rail_only",
+    "minimum_passengers": 10,
+    "discount_rate": "25% off standard class fares",
+    "conditions": "All members of the group must travel together on the same designated train. Group bookings cannot be modified or refunded within 7 days of travel.",
+    "how_to_book": "Group bookings must be made at least 14 days in advance through the group travel portal on the website or by calling customer service."
+  },
+  "children_and_family": {
+    "children_fares": {
+      "metro": {
+        "under_5": "Free of charge. No ticket required.",
+        "ages_5_to_15": "Half the adult fare. A child ticket must be purchased.",
+        "unaccompanied_children": "Children under 10 must be accompanied by a person aged 16 or over."
+      },
+      "national_rail": {
+        "under_5": "Free of charge when accompanied by a fare-paying adult.",
+        "ages_5_to_15": "Half the adult fare applies to standard and first class.",
+        "family_railcard": "Passengers holding a valid Family Railcard receive an additional 33% discount on child fares and 20% discount on adult fares for up to 4 adults and 4 children travelling together."
+      }
+    },
+    "prams_and_pushchairs": {
+      "metro": "Foldable pushchairs are permitted at all times. Unfolded pushchairs are permitted outside peak hours only (outside 07:00-09:30 and 17:00-20:00 weekdays). Passengers must fold pushchairs if the carriage is crowded.",
+      "national_rail": "Pushchairs and prams are permitted in all coaches. Dedicated space is available in the family coach. Passengers are responsible for securing pushchairs."
+    },
+    "family_coach": {
+      "available_on": "national_rail",
+      "description": "Selected national rail services include a designated family coach where children and families are welcome. Noise levels are expected to be higher in this coach.",
+      "facilities": "The family coach includes extra luggage space, fold-down tables, and proximity to accessible toilets."
+    }
+  },
+  "passenger_conduct": {
+    "general_behaviour": "All passengers are expected to behave in a manner that is respectful to other passengers and staff. Aggressive, threatening, or antisocial behaviour will not be tolerated.",
+    "staff_interactions": "Passengers must comply with reasonable instructions from authorised staff. Obstructing or abusing staff is a criminal offence.",
+    "photography": "Photography for personal use is permitted on trains and at stations. Commercial photography requires prior written permission from the operator.",
+    "busking": "Busking and street performance are not permitted on trains or at stations without prior written authorisation.",
+    "intoxication": {
+      "metro": "Passengers who are visibly intoxicated may be refused travel. Alcohol consumption is prohibited on all metro services.",
+      "national_rail": "Passengers who are visibly intoxicated and causing a disturbance may be asked to leave the train. The operator reserves the right to contact law enforcement."
+    },
+    "mobile_phones": "Passengers are asked to use mobile phones considerately, particularly in quiet zones and priority seating areas. Loud speakerphone use is discouraged in all coaches."
+  },
+  "season_tickets_and_passes": {
+    "metro_day_pass": {
+      "price_usd": 8.50,
+      "validity": "Unlimited travel on all metro lines from first use until end of service on the same day.",
+      "purchase": "Available via the app, ticket machines at all stations, or customer service desks."
+    },
+    "metro_weekly_pass": {
+      "price_usd": 32.00,
+      "validity": "7 consecutive days of unlimited metro travel from the date of activation.",
+      "purchase": "Available via the app or at staffed station desks."
+    },
+    "national_rail_monthly_pass": {
+      "price_usd": 180.00,
+      "validity": "Unlimited standard class travel on any national rail service within a single zone for 30 days.",
+      "zones": "Zone maps are available on the website and at all staffed stations.",
+      "first_class_upgrade": "Monthly pass holders may upgrade to first class on a per-journey basis by paying the first class supplement at the time of travel."
+    },
+    "combined_metro_rail_pass": {
+      "price_usd": 55.00,
+      "validity": "7 consecutive days of unlimited travel on both metro and national rail services within the covered network.",
+      "purchase": "Available via the app or at staffed national rail stations only."
+    }
+  },
+  "special_services": {
+    "night_services": {
+      "metro": {
+        "available": true,
+        "nights": "Friday and Saturday nights only.",
+        "frequency": "Every 30 minutes between 00:00 and 05:00.",
+        "lines_covered": "Night services operate on Lines 1, 2, and 3 only. Other lines do not operate between 00:30 and 05:30.",
+        "fares": "Standard fares apply. Day passes and weekly passes are valid on night services."
+      },
+      "national_rail": {
+        "available": false,
+        "note": "National rail does not currently operate overnight services. First departures begin at approximately 05:30."
+      }
+    },
+    "express_services": {
+      "description": "Selected national rail routes operate express services that skip intermediate stops. Express services are clearly marked in the timetable and on platform displays.",
+      "surcharge_usd": 3.50,
+      "booking": "Express surcharge must be paid at the time of booking. Passengers holding standard tickets may not board express services without paying the surcharge."
+    },
+    "charter_services": {
+      "description": "Entire train carriages or trains can be chartered for private events, corporate travel, or group excursions.",
+      "minimum_notice_days": 30,
+      "how_to_book": "Contact the group and charter travel team via the website or by phone. A non-refundable deposit of 25% is required at the time of booking."
     }
   }
 }
