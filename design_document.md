@@ -308,6 +308,8 @@ The primary trade-off was **synchronization overhead**. If a physical train stat
 
 Adding a promotional code subsystem provides significant commercial value to TransitFlow. It enables the operator to run targeted marketing campaigns and seasonal discounts while safely enforcing strict redemption limits (maximum uses and expiry dates) under high-concurrency booking environments.
 
+Inspired by the success of the 'Taipei MRT GO' application, we further extended our relational capabilities by adding a dynamic **Crowdedness Indicator** to rail schedules and a **Frequent Flyer Reward** calculation that tier-discounts users based on their monthly travel volume, significantly enhancing the passenger experience without requiring complex schema modifications.
+
 ### Database Changes
 
 We introduced a new `promo_codes` table to track discount configurations alongside an atomic usage counter, complemented by a specific B-Tree index for active codes.

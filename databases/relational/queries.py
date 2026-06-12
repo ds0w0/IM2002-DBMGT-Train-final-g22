@@ -959,3 +959,36 @@ def execute_booking_with_promo(
         return False, f"交易失敗已安全復原: {str(e)}"
     finally:
         conn.close()
+
+def query_user_monthly_discount(user_id: str) -> dict:
+    """
+    # TASK 6 EXTENSION: Frequent Flyer Discount (ds0w0)
+    計算該乘客「當月」的捷運總搭乘次數，並依照台北捷運常客邏輯給予次月回饋折扣。
+    - >= 30 次: 30% 折扣
+    - >= 10 次: 10% 折扣
+    """
+    sql = """
+        SELECT COUNT(*) AS monthly_rides
+        FROM metro_travel_history
+        WHERE user_id = %s
+          AND tap_in_at >= date_trunc('month', CURRENT_TIMESTAMP);
+    """
+    with _connect() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(sql, (user_id,))
+            row = cur.fetchone()
+            rides = row["monthly_rides"] if row else 0
+
+    # 商業邏輯：階梯式回饋
+    discount_percent = 0.0
+    if rides >= 30:
+        discount_percent = 30.0
+    elif rides >= 10:
+        discount_percent = 10.0
+
+    return {
+        "user_id": user_id,
+        "current_month_rides": rides,
+        "earned_discount_percent": discount_percent,
+        "status": "Eligible" if discount_percent > 0 else "Keep Riding"
+    }

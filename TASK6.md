@@ -18,9 +18,22 @@ This extension implements a production-grade Promotional Voucher system with str
 - `promo_codes`: Stores registered active discount vouchers, discount percentages, expiry policies, and numeric atomic usage counters (`max_uses`, `current_uses`). Includes a specific B-Tree index for fast active-code lookups.
 
 ### Functions Added / Modified
+## 1. Promo Code Subsystem, Crowdedness Indicator & Frequent Flyer Rewards (ds0w0)
+
+This extension implements a production-grade Promotional Voucher system with strict atomic concurrency control, alongside a dynamic train crowdedness calculator and a frequent flyer reward system inspired by real-world transit apps (e.g., Taipei MRT GO App).
+
+### Files Modified
+- `databases/relational/schema.sql`
+- `databases/relational/queries.py`
+
+### Tables Added
+- `promo_codes`: Stores registered active discount vouchers, discount percentages, expiry policies, and numeric atomic usage counters (`max_uses`, `current_uses`). Includes a specific B-Tree index for fast active-code lookups.
+
+### Functions Added / Modified
 - `query_validate_promo_code(code)`: Read-only endpoint to verify code existence, validity, expiry, and capacity limits.
 - `execute_booking_with_promo(...)`: Atomic write operation wrapping code verification, dynamic price reduction, seat protection, and voucher increment tracking in a single database transaction using pessimistic row-locking (`FOR UPDATE`) for concurrent safety.
-- `query_national_rail_availability(...)` **(Modified)**: Added a dynamic **Crowdedness Indicator** (High 🔴 / Medium 🟡 / Low 🟢) computed on-the-fly based on `booked_count` versus `total_capacity`.
+- `query_national_rail_availability(...)` : Added a dynamic **Crowdedness Indicator** (High 🔴 / Medium 🟡 / Low 🟢) computed on-the-fly based on `booked_count` versus `total_capacity`.
+- `query_user_monthly_discount(user_id)` : Calculates a user's monthly metro rides using SQL aggregation (`COUNT`) and date functions (`date_trunc`), returning a tiered discount (10% or 30%) based on real-world frequent flyer logic.
 
 ---
 
