@@ -1,3 +1,4 @@
+-- # TASK 6 EXTENSION: Promo Code & Discount Database Subsystem (ds0w0)
 -- ============================================================
 --  TransitFlow PostgreSQL Schema
 --  Seed data is loaded separately by: python skeleton/seed_postgres.py
@@ -67,6 +68,9 @@ CREATE TABLE IF NOT EXISTS national_rail_bookings (
     booked_at              TIMESTAMPTZ   NOT NULL,
     travelled_at           TIMESTAMPTZ   
 );
+
+CREATE INDEX IF NOT EXISTS idx_rail_bookings_schedule_class 
+ON national_rail_bookings(schedule_id, fare_class);
 
 -- 4. 付款紀錄表
 CREATE TABLE IF NOT EXISTS payments (
@@ -159,6 +163,38 @@ CREATE TABLE IF NOT EXISTS seat_layouts (
     seat_column VARCHAR(2) NOT NULL,
     fare_class VARCHAR(20) NOT NULL
 );
+
+-- 為 national_rail_bookings 的外鍵加上 HASH/B-TREE 索引
+CREATE INDEX IF NOT EXISTS idx_rail_bookings_user_id ON national_rail_bookings(user_id);
+
+-- 為 feedback 的外鍵加上索引
+CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback(user_id);
+
+-- 為 metro_travel_history 的外鍵加上索引
+CREATE INDEX IF NOT EXISTS idx_metro_history_user_id ON metro_travel_history(user_id);
+
+-- ============================================================
+--  TASK 6 EXTENSION: Promo Code & Discounts Database Subsystem (ds0w0)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS promo_codes (
+    code VARCHAR(20) PRIMARY KEY,
+    discount_percent NUMERIC(5,2) NOT NULL CHECK (discount_percent > 0 AND discount_percent <= 100),
+    max_uses INT NOT NULL,
+    current_uses INT DEFAULT 0,
+    expiry_date DATE NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- 建立 Promo Code 的基本檢索 B-Tree 索引以提升高併發查詢效率
+CREATE INDEX IF NOT EXISTS idx_promo_codes_lookup ON promo_codes(code) WHERE is_active = TRUE;
+
+-- 預先灌入測試用的折價券種子資料
+INSERT INTO promo_codes (code, discount_percent, max_uses, current_uses, expiry_date)
+VALUES ('TRANSIT10', 10.00, 100, 0, '2027-12-31') ON CONFLICT DO NOTHING;
+INSERT INTO promo_codes (code, discount_percent, max_uses, current_uses, expiry_date)
+VALUES ('EARLYBIRD20', 20.00, 50, 0, '2027-12-31') ON CONFLICT DO NOTHING;
+
 -- ============================================================
 --  VECTOR SCHEMA  (RAG / Help Desk) — do not modify
 -- ============================================================
