@@ -98,6 +98,15 @@ def query_national_rail_availability(
                 booked = r["booked_count"]
                 available_seats = max(0, total_cap - booked)
                 
+                # 🌟 TASK 6 EXTENSION: 動態計算車廂擁擠度 (Crowdedness Indicator)
+                occupancy_rate = booked / total_cap if total_cap > 0 else 0
+                if occupancy_rate >= 0.8:
+                    crowdedness = "High/擁擠 🔴"
+                elif occupancy_rate >= 0.5:
+                    crowdedness = "Medium/普通 🟡"
+                else:
+                    crowdedness = "Low/舒適 🟢"
+                
                 results.append({
                     "schedule_id": r["schedule_id"],
                     "train_number": r.get("train_number") or "NR-EXPRESS",
@@ -105,6 +114,7 @@ def query_national_rail_availability(
                     "departure_time": r["departure_time"],
                     "arrival_time": r["arrival_time"],
                     "available_seats": available_seats,
+                    "crowdedness": crowdedness,  # 新增的擁擠度欄位
                     "travel_date": travel_date
                 })
     return results
