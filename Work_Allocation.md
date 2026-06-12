@@ -1,9 +1,5 @@
 # Work Allocation Report — Group 22
 
-```text
-待修改項目：部分工作分配及實作部分說明調整。
-```
-
 ## 1. Team Members
 
 | Full Name | Student ID | GitHub Username | Email |
@@ -28,7 +24,7 @@
 | **Task 3** — PostgreSQL seeding (`seed_postgres.py`) | **ds0w0** | **chocomint408**, yikes0000 | Configured dynamic tuple loaders using `execute_values` with complete `ON CONFLICT DO NOTHING` logic. Successfully seeded all 11 core tables (stations, schedules, user credentials, feedback, and metro history). |
 | **Task 4** — Neo4j graph design & seeding (`seed_neo4j.py`, `seed.cypher`) | **chocomint408** | | Architected graph database schema containing interchange networks, `METRO_LINK`, and topological costs. |
 | **Task 5** — Neo4j query functions (`graph/queries.py`) | **chocomint408** | **ds0w0** | Written initially by chocomint408. **ds0w0 provided refactoring support** during code integration to ensure precise time-weighted output sorting alignment. |
-| **Task 6** — Optional extension *(RAG Knowledge Base)* | **yikes0000** | chocomint408, ds0w0 | yikes0000 enriched unstructured policy JSON manuals with supporting testing guidance from chocomint408. ds0w0 subsequently refactored and streamlined the Python embedding module bindings via importlib to resolve lethal cyclic referencing. |
+| **Task 6** — Optional extension *(Trip History Panel + RAG Knowledge Base)* | **yikes0000** | chocomint408, ds0w0 | yikes0000 extended `train-mock-data/travel_policies.json` with 4 new top-level policy sections (`children_and_family`, `passenger_conduct`, `season_tickets_and_passes`, `special_services`), fixed JSON structure, and verified all 21 policy documents embed correctly into pgvector via `seed_vectors.py`. Also implemented the Trip History Panel in `skeleton/ui.py` — a new 🎫 My Bookings tab with two Dataframe tables querying `query_user_bookings()` directly from PostgreSQL, bypassing the LLM entirely for a structured, persistent booking history view. Created `TASK6.md` at repo root documenting all modified files and functions. |
 
 ### Design Document
 
@@ -37,9 +33,10 @@
 | Section 1 — ER Diagram | **ds0w0** | | Generated data visualisations using dbdiagram.io formats. |
 | Section 2 — Normalisation Justification | **ds0w0** | | Authored logic breakdown logs ensuring strict 3NF database layout compliance. |
 | Section 3 — Graph Database Design Rationale | **chocomint408** | | Authored architectural rationale behind graph node relationship topologies. |
-| Section 4 — Vector / RAG Design | **yikes0000** | | Documented metadata query formatting and vector distance bounds. |
+| Section 4 — Vector / RAG Design | **yikes0000** | | Documented RAG pipeline stages, embedding dimension choices, cosine similarity rationale, and provider switching consequences. |
 | Section 5 — AI Tool Usage Evidence | **ds0w0** | chocomint408, yikes0000 | Consolidated diagnostic chat stubs and repository graph snapshots. |
 | Section 6 — Reflection & Trade-offs | **chocomint408** | ds0w0, yikes0000 | Synthesized cross-system analysis comparing ACID relational models vs network graphs. |
+| Section 7 — Task 6 Extension | **yikes0000** | | Documented motivation for Trip History Panel, UI design decisions, schema queries used, and testing evidence with screenshots. |
 
 ---
 
@@ -47,9 +44,9 @@
 
 | Member | Estimated % | Brief justification |
 | --- | --- | --- |
-| **張學睿 (ds0w0)** | **40%** | Designed the entire core relational database management layout, parameterised lookup structures, transaction scopes, and automated python table-seeding configurations. Provided critical module dependency fix. |
-| **陸昱霖 (chocomint408)** | **40%** | Spearheaded the full graph database network architecture, Authoring Cypher link parameters, edge weights, and routing lookups. Conducted exhaustive localized application performance verification checks. |
-| **王宇崴 (yikes0000)** | **20%** | Expanded knowledge corpus files by authoring unstructured rail travel regulation inputs (lost items, penalty guidelines) and configured vector store baseline notes. |
+| **張學睿 (ds0w0)** | **37.5%** | Designed the entire core relational database management layout, parameterised lookup structures, transaction scopes, and automated python table-seeding configurations. Provided critical module dependency fix. |
+| **陸昱霖 (chocomint408)** | **37.5%** | Spearheaded the full graph database network architecture, authoring Cypher link parameters, edge weights, and routing lookups. Conducted exhaustive localized application performance verification checks. |
+| **王宇崴 (yikes0000)** | **25%** | Extended RAG knowledge base with 4 new policy sections (`children_and_family`, `passenger_conduct`, `season_tickets_and_passes`, `special_services`) and verified end-to-end vector seeding (21 documents total). Implemented Task 6 Trip History Panel UI extension, enabling users to view past national rail bookings and metro trips in a structured table format queried directly from PostgreSQL. Authored Design Document Section 4 and Section 7. |
 | **Total** | **100%** | |
 
 ---
@@ -59,6 +56,7 @@
 | Change | Original plan | Revised plan | Reason |
 | --- | --- | --- | --- |
 | **RAG Runtime Dependency Patch** | yikes0000 embeds hardcoded vector providers. | ds0w0 deployed an `importlib` module dynamic injection bridge. | Static circular dependencies blocked the execution pipeline between language configurations and database query logic during cross-system integration, requiring ds0w0 to deploy a dynamic import patch. |
+| **Task 6 Scope Expansion** | yikes0000 handles RAG knowledge base only. | yikes0000 additionally implemented Trip History Panel UI extension. | The panel adds a meaningful new interaction mode (structured booking table) that the chat-only interface cannot replicate, qualifying for full Task 6 database extension marks rather than UI-only cap. |
 
 ---
 
@@ -70,4 +68,4 @@ We confirm that this work allocation accurately reflects how responsibilities we
 | --- | --- | --- |
 | 張學睿 | 張學睿 | 2026-06-03 |
 | 陸昱霖 | 陸昱霖 | 2026-06-03 |
-| [組員 C 姓名] | [組員 C 姓名] | 2026-06-03 |
+| 王宇崴 | 王宇崴 | 2026-06-12 |
